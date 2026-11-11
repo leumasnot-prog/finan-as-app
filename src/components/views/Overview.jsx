@@ -1,0 +1,47 @@
+import { ChevronRight } from "lucide-react";
+import { Card, CardHint, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BalanceCard, PrivacyCard, SplitCard } from "@/components/OverviewCards";
+import { AccountsList } from "@/components/AccountsList";
+import { CreditCardVisual } from "@/components/CreditCardVisual";
+import { Money } from "@/components/Money";
+
+export function CardsSummary({ cards, month, onSeeAll }) {
+  const total = cards.reduce((s, a) => s + a.myShare, 0);
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between">
+        <CardTitle>Cartões</CardTitle>
+        <Button variant="outline" size="sm" onClick={onSeeAll}>Ver faturas<ChevronRight className="h-3 w-3" /></Button>
+      </div>
+      <CardHint className="mt-5">Faturas do mês · sua parte</CardHint>
+      <Money value={total} className="mt-1" />
+      {cards.length === 0 ? (
+        <p className="mt-6 text-sm text-muted-foreground">Nenhum cartão. Adicione uma conta na categoria “Cartão”.</p>
+      ) : (
+        <div className="-mx-5 mt-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2">
+          {cards.map((a) => <CreditCardVisual key={a.id} account={a} month={month} className="w-[82%] snap-start sm:w-[300px]" />)}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export function Overview({ b, shared, me, month, accounts, actions, setTab }) {
+  const cards = accounts.filter((a) => a.category === "cartao");
+  return (
+    <div className="grid gap-4 xl:grid-cols-3">
+      <div className="space-y-4 xl:col-span-2">
+        <BalanceCard b={b} onEditIncome={actions.editIncome} />
+        <div className="grid gap-4 md:grid-cols-2">
+          <SplitCard b={b} shared={shared} me={me} onToggleSettled={actions.toggleSettled} onEdit={actions.edit} />
+          <CardsSummary cards={cards} month={month} onSeeAll={() => setTab("cartoes")} />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <AccountsList accounts={accounts} onTogglePaid={actions.togglePaid} onEdit={actions.edit} />
+        <PrivacyCard b={b} shared={shared} me={me} />
+      </div>
+    </div>
+  );
+}
