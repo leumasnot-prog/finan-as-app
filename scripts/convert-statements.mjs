@@ -15,7 +15,8 @@ mkdirSync(outDir, { recursive: true });
 
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const decode = (buf) => { const t = buf.toString("utf8"); return /Ã[§£©¡³ª­]|�/.test(t) ? new TextDecoder("windows-1252").decode(buf) : t; };
-const catName = Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.id, c.name]));
+const categories = [...DEFAULT_CATEGORIES, ...(personal.categories ?? [])];
+const catName = Object.fromEntries(categories.map((c) => [c.id, c.name]));
 const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 const all = [], summary = [], failed = [];
@@ -26,7 +27,7 @@ for (const file of walk(inDir).filter((f) => [".csv", ".ofx", ".txt"].includes(e
     summary.push({ arquivo: basename(file), lido: false });
     continue;
   }
-  const rows = prepareImport(r.transactions, { categories: DEFAULT_CATEGORIES, selfNames: personal.selfNames ?? [], rules: personal.rules ?? [] });
+  const rows = prepareImport(r.transactions, { categories, selfNames: personal.selfNames ?? [], rules: personal.rules ?? [] });
   const kept = rows.filter((x) => x.include);
   summary.push({
     arquivo: basename(file), lido: true, formato: r.format,
