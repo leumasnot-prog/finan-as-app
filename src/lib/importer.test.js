@@ -85,7 +85,7 @@ describe("nomes", () => {
     expect(cleanName("PAG*PadariaSaoJorge")).toBe("Padaria Sao Jorge");
     expect(cleanName("SumUp *CANTINA DA NONNA")).toBe("Cantina da Nonna");
     expect(cleanName("EC *POSTO IPIRANGA SP")).toBe("Posto Ipiranga");
-    expect(cleanName("IFD*BURGER KING")).toBe("iFood");
+    expect(cleanName("IFD*BURGER KING")).toBe("iFood · Burger King");
     expect(cleanName("Uber *Trip")).toBe("Uber");
     expect(cleanName("MP *LOJADOJOAO 4002 SAO PAULO BR")).toBe("Lojadojoao");
     expect(cleanName("Transferência enviada pelo Pix - IMOBILIARIA SOL - 12.345.678/0001-90")).toBe("Pix Imobiliaria Sol");
@@ -129,6 +129,7 @@ describe("casamento com o que já foi lançado", () => {
     });
     expect(rows.find((r) => r.raw.startsWith("PAG")).name).toBe("Padaria São Jorge");
     expect(rows.find((r) => r.raw === "Pagamento recebido")).toMatchObject({ include: false });
+    expect(prepareImport([{ raw: "Fulano de Tal", operation: "Pix enviado", amount: 50, date: "2026-12-01", fitid: "1" }], { selfNames: ["fulano de tal"] })[0]).toMatchObject({ include: false, skipReason: "Entre suas contas" });
     const fone = rows.find((r) => r.raw.startsWith("Mercadolivre"));
     expect(fone.match?.id).toBe("a");
     expect(fone.installment).toEqual({ current: 2, total: 3 });

@@ -53,6 +53,10 @@ export const DEFAULT_CATEGORIES = [
   { id: "contas", name: "Contas fixas", emoji: "💡" },
   { id: "lazer", name: "Lazer", emoji: "🎬" },
   { id: "saude", name: "Saúde", emoji: "💊" },
+  { id: "assinaturas", name: "Assinaturas", emoji: "📱" },
+  { id: "compras", name: "Compras", emoji: "🛍️" },
+  { id: "pix", name: "Pix e pessoas", emoji: "🤝" },
+  { id: "doacoes", name: "Doações", emoji: "❤️" },
   { id: "outros", name: "Outros", emoji: "🧾" },
 ];
 
@@ -88,6 +92,10 @@ export const CATEGORIES = {
   contas: "Contas fixas",
   lazer: "Lazer",
   saude: "Saúde",
+  assinaturas: "Assinaturas",
+  compras: "Compras",
+  pix: "Pix e pessoas",
+  doacoes: "Doações",
   outros: "Outros",
 };
 

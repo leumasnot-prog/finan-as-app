@@ -93,6 +93,7 @@ const SYNONYMS = {
   installment: ["parcela", "parcelas", "installment"],
   category: ["categoria", "category"],
   kind: ["tipo lancamento", "tipo", "type", "natureza"],
+  history: ["historico", "operacao", "tipo de transacao"],
 };
 
 // Nome igual vale mais que nome contido; entre iguais, vence o sinônimo que vem
@@ -111,7 +112,7 @@ export function detectColumns(rows) {
   for (let r = 0; r < Math.min(rows.length, 20); r++) {
     const map = {};
     const used = new Set();
-    for (const field of ["date", "amount", "description", "installment", "category", "kind", "credit", "debit"]) {
+    for (const field of ["date", "amount", "description", "installment", "category", "kind", "credit", "debit", "history"]) {
       let best = -1, bestScore = 0;
       rows[r].forEach((h, i) => {
         if (used.has(i)) return;
@@ -163,12 +164,17 @@ export function rowsToTransactions(rows, { headerRow, map }, { fallbackYear, exp
     else amount = (parseAmount(r[map.credit]) || 0) - (Math.abs(parseAmount(r[map.debit])) || 0);
     const kind = map.kind != null ? strip(r[map.kind] ?? "") : "";
     if (map.amount != null && /^(d|debito|saida)$/.test(kind) && amount > 0) amount = -amount;
+    const desc = (r[map.description] ?? "").replace(/\s+/g, " ").trim();
+    const hist = map.history != null && map.history !== map.description ? (r[map.history] ?? "").replace(/\s+/g, " ").trim() : "";
     return {
-      raw: (r[map.description] ?? "").replace(/\s+/g, " ").trim(),
+      // Extrato do Inter traz o tipo ("Pix enviado", "Compra no débito") em
+      // Histórico e às vezes deixa a Descrição vazia.
+      raw: desc || hist || "Sem descrição",
+      operation: hist,
       date: parseDate(r[map.date], fallbackYear),
       amount,
       installmentText: map.installment != null ? r[map.installment] : "",
-      bankCategory: map.category != null ? r[map.category] ?? "" : "",
+      bankCategory: map.category != null ? r[map.category] ?? "" : hist,
       fitid: `csv-${i}`,
     };
   }).filter((t) => t.date && !Number.isNaN(t.amount) && t.amount !== 0);
@@ -189,8 +195,9 @@ export function readStatement(text, opts = {}) {
 // ── limpeza do nome ────────────────────────────────────────
 // Prefixo de maquininha/subadquirente que suja o nome: "IFD*", "PAG*", "MP *",
 // "SumUp *", "EC *", "PG *", "IZ *", "STONE*", "MERCADOPAGO*", "PICPAY*", "CIELO*"…
-const ACQUIRERS = /^(?:ifd|ifood|pag|pg|mp|mercadopago|mercpago|merc\s?pago|sumup|sum\s?up|ec|iz|izettle|stone|stn|picpay|pp|cielo|getnet|gn|rede|ton|ppro|paypal|ppl|dl|dlocal|ebanx|hipercard|pagseguro|pagbank|pags|inf|bpag|zp|zoop|asaas|vindi|cloudwalk|infinitepay|lj)\s*\*\s*/i;
+const ACQUIRERS = /^(?:ifd|ifood|pag|pg|mp|mercadopago|mercpago|merc\s?pago|sumup|sum\s?up|ec|iz|izettle|stone|stn|picpay|pp|cielo|getnet|gn|rede|ton|ppro|paypal|ppl|dl|dlocal|ebanx|hipercard|pagseguro|pagbank|pags|inf|bpag|zp|zoop|asaas|vindi|cloudwalk|infinitepay|lj|jim\.com|jim|vmt|ebn|ebanx|nupay|pp3)\s*\*\s*/i;
 const NOISE = [
+  /\s*(?:ribeirao\s*pret\w*|sertaozinho|pradopolis|sao\s*paulo|campinas)\s*(?:bra?)?\s*$/i,
   /\s+(?:parc(?:ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i, // "Parcela 2/10" no fim
   /\s+-?\s*(?:sao paulo|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|brasilia|brasília|salvador|recife|fortaleza|campinas|osasco|barueri|santo andre|guarulhos|niteroi)\b.*$/i,
   /\s+(?:sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|es|pa|am|ma|mt|ms|pb|rn|al|se|pi|ro|to|ac|ap|rr)\s*(?:br[a]?)?$/i,
@@ -208,8 +215,31 @@ const titleCase = (s) =>
 
 // Nomes conhecidos que a limpeza sozinha não acerta.
 const KNOWN = [
-  [/uber\s*\*?\s*(trip|uber|viagem)?|uber\.com/i, "Uber"],
   [/uber\s*\*?\s*eats/i, "Uber Eats"],
+  [/uber\s*\*?\s*(trip|uber|viagem)?|uber\.com/i, "Uber"],
+  [/anthropic|claude\.ai/i, "Claude (Anthropic)"],
+  [/openai|chatgpt/i, "ChatGPT"],
+  [/hostinger/i, "Hostinger"],
+  [/google\s*cloud/i, "Google Cloud"],
+  [/google\s*\*?\s*one/i, "Google One"],
+  [/melimais|meli\+|meli\s*mais/i, "Meli+ (Mercado Livre)"],
+  [/plano\s*nu\s*cel|nucel/i, "NuCel (celular)"],
+  [/savegnago/i, "Savegnago"],
+  [/ja[uú]\s*serve/i, "Jaú Serve"],
+  [/capcut/i, "CapCut"],
+  [/parcelamento\s*de\s*fatura/i, "Parcelamento de fatura"],
+  [/^cea\b|c&a\b|c\s*e\s*a\s*modas/i, "C&A"],
+  [/inditex|zara\b/i, "Zara"],
+  [/renner/i, "Renner"],
+  [/riachuelo/i, "Riachuelo"],
+  [/^raia\s*\d|drogaraia|droga\s*raia/i, "Droga Raia"],
+  [/cinepolis/i, "Cinépolis"],
+  [/cinemark/i, "Cinemark"],
+  [/airbnb/i, "Airbnb"],
+  [/steam/i, "Steam"],
+  [/zigpay|\bzig\b/i, "Zig (evento)"],
+  [/entrevias/i, "Entrevias (pedágio)"],
+  [/sympla/i, "Sympla"],
   [/^99\s*\*?|99\s?(app|pop|taxi|tecnologia)/i, "99"],
   [/ifood|^ifd\b/i, "iFood"],
   [/netflix/i, "Netflix"],
@@ -244,9 +274,23 @@ const KNOWN = [
   [/\btim\b/i, "TIM"],
 ];
 
+// Palavras que o banco corta no meio por limite de caracteres.
+const TRUNCATED = {
+  supermercad: "Supermercado", supermerc: "Supermercado", concessionar: "Concessionária", restaurant: "Restaurante",
+  restaura: "Restaurante", farmac: "Farmácia", drogari: "Drogaria", conveni: "Conveniência", conven: "Conveniência",
+  confeitari: "Confeitaria", lanchonet: "Lanchonete", panificad: "Panificadora", distribuid: "Distribuidora",
+  pret: "Preto", ribeirao: "Ribeirão", sertaozi: "Sertãozinho", sertaozinho: "Sertãozinho", fresc: "Fresca", paulist: "Paulista",
+};
+
 export function cleanName(raw) {
   let s = String(raw ?? "").replace(/\s+/g, " ").trim();
   if (!s) return "Sem nome";
+  const iof = /^iof\s*(?:de|sobre)?\s*"(.+)"\s*$/i.exec(s);
+  if (iof) return `IOF · ${cleanName(iof[1])}`;
+  const est = /^estorno\s*(?:de)?\s*"(.+?)"/i.exec(s);
+  if (est) return `Estorno · ${cleanName(est[1])}`;
+  const ifd = /^(?:ifd|ifood)\s*\*\s*(.+)$/i.exec(s);
+  if (ifd) return `iFood · ${cleanName(ifd[1])}`;
   for (const [re, name] of KNOWN) if (re.test(s)) return name;
   // PIX / transferência: guarda o destinatário
   if (/\bpix\b|transfer[eê]ncia|\bted\b/i.test(s)) {
@@ -254,11 +298,15 @@ export function cleanName(raw) {
     const tail = who ?? s.replace(/.*(?:pix|transfer[eê]ncia|ted)\s*(?:enviad[oa]|recebid[oa])?\s*(?:pelo pix)?\s*(?:para|de)?\s*/i, "");
     return tail.trim() ? `Pix ${titleCase(tail.replace(/\d[\d.*/-]{5,}/g, "").trim())}` : "Pix";
   }
-  s = s.replace(ACQUIRERS, "");
+  while (ACQUIRERS.test(s)) s = s.replace(ACQUIRERS, ""); // "Ec *Mp*Melimais"
+  s = s.replace(/\s*-?\s*(?:parc(?:ela)?\.?\s*)?\d{1,2}\s*(?:\/|de)\s*\d{1,2}\s*$/i, ""); // " - Parcela 1/2", " - 1/2"
   s = s.replace(/([a-zà-ú])([A-ZÀ-Ú])/g, "$1 $2"); // "PadariaSaoJorge" → "Padaria Sao Jorge"
   s = s.replace(/\*/g, " ");
   for (const re of NOISE) s = s.replace(re, re.flags.includes("g") ? " " : "");
   s = s.replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+  s = s.split(" ").map((w) => TRUNCATED[strip(w)] ?? w).join(" ");
+  s = s.replace(/\s+(?:comercio|com|varejist\w*|vareji\w*|ltda|eireli|me|s\/?a)(?:\s+\w{0,3})*$/i, "") // "Assb Comercio Varejist"
+    .replace(/\s+(?:de|do|da|dos|das|e|\w)$/i, "").replace(/\s+(?:de|do|da|dos|das|e|\w)$/i, "").trim(); // "Operadora de", "Barbearia e T"
   return titleCase(s || raw);
 }
 
@@ -277,16 +325,23 @@ export function parseInstallment(text) {
 
 // ── categoria ──────────────────────────────────────────────
 // Palavras-chave → id de categoria padrão. A regra aprendida (rules) vem antes.
+// A ordem importa: a primeira que bate vence.
 const CATEGORY_HINTS = [
-  ["alimentacao", /ifood|rappi|uber\s*eats|mercado\b|supermerc|hiper|atacad|assai|carrefour|pao de acucar|extra\b|hortifruti|sacolao|padaria|panific|acougue|restaur|lanch|pizz|burger|mc\s*donald|bk\b|kfc|subway|outback|starbucks|cafe\b|cafeteria|bar\b|boteco|sushi|food|aliment|feira|emporio|doceria|sorvet/],
-  ["transporte", /uber(?!\s*eats)|\b99\b|99app|99pop|cabify|posto|combust|gasolina|shell|ipiranga|petrobras|raizen|estacion|estapar|sem parar|conectcar|veloe|pedagio|metro\b|cptm|bilhete|onibus|passagem|detran|ipva|oficina|mecanic|lava\s*jato/],
+  ["pix", /\bpix\b|transferencia|\bted\b/],
+  ["doacoes", /paroquia|igreja|dizimo|doacao|vakinha|ong\b|instituto\b/],
+  ["assinaturas", /capcut|netflix|spotify|disney|hbo|max\.com|prime video|primevideo|youtube|deezer|globoplay|apple\.com|icloud|google\s*one|anthropic|claude|openai|chatgpt|commandcode|cursor|github|hostinger|google cloud|aws|vercel|notion|canva|adobe|microsoft|melimais|meli\s*mais|pdfeditor|visor finance|assinatura|plano\b/],
+  ["compras", /inditex|zara|renner|riachuelo|\bcea\b|c&a|shein|shopee|aliexpress|amazon|mercado\s*livre|mercadolivre|mercadol|magalu|magazine|americanas|vestuari|calcad|shopping|iguatemi|loja|store|outlet|perfum|boticario|natura\b|sephora|skinsmonkey/],
+  ["alimentacao", /\bifd\b(?!.*drog)|savegnago|jau\s*serve|doces\b|supermercad|acai|milky moo|petisca|grill|pasta|pastaio|food shop|pao\b|confeitaria|burger|ifood|rappi|uber\s*eats|mercado\b|supermerc|hiper|atacad|assai|carrefour|pao de acucar|extra\b|hortifruti|sacolao|padaria|panific|acougue|restaur|lanch|pizz|burger|mc\s*donald|bk\b|kfc|subway|outback|starbucks|cafe\b|cafeteria|bar\b|boteco|sushi|food|aliment|feira|emporio|doceria|sorvet/],
+  ["transporte", /auto\s*post|entrevias|^pp\d|concessionar|uber(?!\s*eats)|\b99\b|99app|99pop|cabify|posto|combust|gasolina|shell|ipiranga|petrobras|raizen|estacion|estapar|sem parar|conectcar|veloe|pedagio|metro\b|cptm|bilhete|onibus|passagem|detran|ipva|oficina|mecanic|lava\s*jato/],
   ["saude", /drog|farma|raia|drogasil|pague menos|panvel|hospital|clinic|laborat|exame|medic|odonto|dentist|psicol|fisioter|unimed|amil|sulamerica|bradesco saude|hapvida|smart\s*fit|academia|gympass|wellhub/],
-  ["lazer", /netflix|spotify|disney|hbo|max\.com|prime video|primevideo|youtube|deezer|globoplay|cinema|cinemark|ingresso|sympla|eventim|steam|playstation|psn|xbox|nintendo|show|teatro|parque|hotel|airbnb|booking|decolar|latam|gol\b|azul\b|viagem|turismo/],
+  ["lazer", /cinepolis|zigpay|arena|futebol|laser|cinema|cinemark|ingresso|sympla|eventim|steam|playstation|psn|xbox|nintendo|show|teatro|parque|hotel|airbnb|booking|decolar|latam|gol\b|azul\b|viagem|turismo/],
   ["contas", /claro|vivo|\btim\b|oi\b|net\b|internet|telefon|enel|light\b|cemig|copel|celesc|coelba|cpfl|energia|eletrop|sabesp|cedae|copasa|sanepar|agua|comgas|naturgy|gas\b|seguro|porto seguro|icloud|google\s*one|apple\.com|microsoft|adobe|chatgpt|openai|anuidade|tarifa|iof/],
   ["moradia", /aluguel|condom|imobili|quintoandar|quinto andar|iptu|leroy|telhanorte|c&c|tok\s*stok|tokstok|camicado|madeira|mobly|etna/],
 ];
 
 export function guessCategory(raw, bankCategory = "", categories = []) {
+  const inner = /^(?:iof|estorno)\s*(?:de|sobre)?\s*"(.+?)"/i.exec(String(raw));
+  if (inner) return guessCategory(inner[1], bankCategory, categories);
   const ids = new Set(categories.map((c) => c.id));
   const text = strip(`${raw} ${bankCategory}`);
   for (const [id, re] of CATEGORY_HINTS) if (re.test(text) && (!ids.size || ids.has(id))) return id;
@@ -330,16 +385,19 @@ export function matchTransactions(txs, accounts) {
 
 // ── tudo junto ─────────────────────────────────────────────
 // Ignora pagamento de fatura, estorno, crédito e rendimento: não é despesa.
-const NOT_EXPENSE = /pagamento (de fatura|recebido|efetuado)|pagto fatura|pgto fatura|pag fatura|credito de|estorno|reembolso|cashback|rendimento|resgate|saldo anterior|saldo do dia|^saldo\b/i;
+const NOT_EXPENSE = /pagamento\s*(?:de\s*)?fatura|p(?:a)?gt\w*\s*parcelamento\s*fatura|aplica[cç][aã]o\s*(?:poupan|cdb|tesouro|fundo|renda)|resgate|pagamento (recebido|efetuado)|fatura\s*(?:do\s*)?cart[aã]o|pagto fatura|pgto fatura|pag fatura|credito de|estorno|reembolso|cashback|rendimento|resgate|saldo anterior|saldo do dia|^saldo\b/i;
 
 // Prepara as linhas da tela de revisão. rules: [{ key, name, category }] aprendidas.
-export function prepareImport(transactions, { categories = [], rules = [], accounts = [] } = {}) {
+// selfNames: seus nomes como aparecem no banco. Pix entre contas suas não é gasto.
+export function prepareImport(transactions, { categories = [], rules = [], accounts = [], selfNames = [] } = {}) {
+  const selfKeys = selfNames.map((n) => strip(n)).filter(Boolean);
   const byKey = new Map(rules.map((r) => [r.key, r]));
   const rows = transactions.map((t, i) => {
     const key = merchantKey(t.raw);
     const rule = byKey.get(key);
     const installment = parseInstallment(t.installmentText) ?? parseInstallment(t.raw.match(/parc\w*\s*\d+\s*\/\s*\d+|\b\d{1,2}\/\d{1,2}\s*$/i)?.[0]);
-    const skip = t.amount <= 0 || NOT_EXPENSE.test(t.raw);
+    const self = selfKeys.some((k) => strip(t.raw).includes(k));
+    const skip = t.amount <= 0 || self || NOT_EXPENSE.test(t.raw) || /credito liberado/i.test(strip(t.operation ?? ""));
     return {
       id: `imp-${i}-${t.fitid}`,
       ...t,
@@ -349,10 +407,28 @@ export function prepareImport(transactions, { categories = [], rules = [], accou
       learned: !!rule,
       installment,
       include: !skip,
-      skipReason: skip ? (t.amount <= 0 ? "Entrada ou estorno" : "Pagamento de fatura") : null,
+      skipReason: skip ? (self ? "Entre suas contas" : t.amount <= 0 ? "Entrada" : /credito liberado/i.test(strip(t.operation ?? "")) ? "Crédito liberado" : /aplica[cç][aã]o/i.test(t.raw) ? "Guardado (aplicação)" : "Pagamento de fatura") : null,
     };
   });
-  const matched = matchTransactions(rows.filter((r) => r.include), accounts);
+  // Estorno anula a compra: "Estorno de "X" -150" some junto com "X 150", e um
+  // "Uber -14,94" some junto com um "Uber 14,94". Nenhum dos dois entra.
+  for (const neg of rows.filter((r) => r.source === "card" && r.amount < 0 && !/pagamento/i.test(r.raw))) {
+    const target = merchantKey(/"(.+?)"/.exec(neg.raw)?.[1] ?? neg.raw);
+    const buy = rows.find((r) => r.include && !r.cancelled && Math.abs(r.amount + neg.amount) < 0.01 && (r.key === target || r.key.startsWith(target) || target.startsWith(r.key)));
+    if (buy) {
+      buy.include = false; buy.cancelled = true; buy.skipReason = "Estornada";
+      neg.skipReason = "Estorno";
+    }
+  }
+  // Estorno sem compra de mesmo valor (ex.: Uber devolve R$ 4,34 de uma corrida
+  // de R$ 17,30) é crédito parcial: entra negativo e abate do total.
+  for (const neg of rows.filter((r) => r.source === "card" && r.amount < 0 && !r.skipReason?.startsWith("Estorno") && !/pagamento/i.test(r.raw))) {
+    neg.include = true;
+    neg.skipReason = null;
+    neg.credit = true;
+    if (!/^estorno/i.test(neg.name)) neg.name = `Estorno · ${neg.name}`;
+  }
+  const matched = matchTransactions(rows.filter((r) => r.include && !r.credit), accounts);
   const byRow = new Map(matched.map((m) => [m.tx.id, m.match]));
   return rows.map((r) => ({ ...r, match: byRow.get(r.id) ?? null }));
 }

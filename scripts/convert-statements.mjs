@@ -7,8 +7,10 @@ import { join, extname, basename } from "node:path";
 import { prepareImport, readStatement } from "../src/lib/importer.js";
 import { DEFAULT_CATEGORIES } from "../src/lib/seed.js";
 
-const [inDir, outDir] = process.argv.slice(2);
-if (!inDir || !outDir) { console.error("uso: node scripts/convert-statements.mjs <entrada> <saida>"); process.exit(1); }
+const [inDir, outDir, rulesFile] = process.argv.slice(2);
+// Regras pessoais (fora do Git): { "selfNames": ["Seu Nome"], "rules": [{ "key", "name", "category" }] }
+const personal = rulesFile ? JSON.parse(readFileSync(rulesFile, "utf8")) : {};
+if (!inDir || !outDir) { console.error("uso: node scripts/convert-statements.mjs <entrada> <saida> [regras.json]"); process.exit(1); }
 mkdirSync(outDir, { recursive: true });
 
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
@@ -24,7 +26,7 @@ for (const file of walk(inDir).filter((f) => [".csv", ".ofx", ".txt"].includes(e
     summary.push({ arquivo: basename(file), lido: false });
     continue;
   }
-  const rows = prepareImport(r.transactions, { categories: DEFAULT_CATEGORIES });
+  const rows = prepareImport(r.transactions, { categories: DEFAULT_CATEGORIES, selfNames: personal.selfNames ?? [], rules: personal.rules ?? [] });
   const kept = rows.filter((x) => x.include);
   summary.push({
     arquivo: basename(file), lido: true, formato: r.format,
@@ -37,7 +39,7 @@ for (const file of walk(inDir).filter((f) => [".csv", ".ofx", ".txt"].includes(e
   for (const x of rows) all.push({ arquivo: basename(file), ...x });
 }
 
-const head = ["arquivo", "data", "nome", "categoria", "valor", "parcela", "entra", "motivo", "original", "categoria_banco"];
+const head = ["arquivo", "data", "nome", "categoria", "valor", "parcela", "entra", "motivo", "original", "operacao_banco"];
 writeFileSync(join(outDir, "lancamentos.csv"), "﻿" + [head.join(";"), ...all.map((x) => [
   x.arquivo, x.date, x.name, catName[x.category] ?? x.category, String(x.amount).replace(".", ","),
   x.installment ? `${x.installment.current}/${x.installment.total}` : "", x.include ? "sim" : "não", x.skipReason ?? "", x.raw, x.bankCategory,
