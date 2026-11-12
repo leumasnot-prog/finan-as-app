@@ -7,6 +7,7 @@ import { Overview } from "@/components/views/Overview";
 import { Flow } from "@/components/views/Flow";
 import { Cards } from "@/components/views/Cards";
 import { House } from "@/components/views/House";
+import { DesignSystem } from "@/components/views/DesignSystem";
 import { StorageManager } from "@/lib/storage";
 import { byCategory, calculateBalances, cashFlowSeries, visibleAccounts } from "@/lib/finance";
 import { monthLabel, shiftMonth } from "@/lib/seed";
@@ -126,7 +127,7 @@ export default function App() {
             <h1 className="truncate font-display text-xl font-bold sm:text-2xl">
               {ml.name} <span className="font-medium text-muted-foreground">{ml.year}</span>
             </h1>
-            <p className="text-xs text-muted-foreground lg:hidden">{NAV.find((n) => n.id === tab).label}</p>
+            <p className="text-xs text-muted-foreground lg:hidden">{NAV.find((n) => n.id === tab)?.label ?? "Design system"}</p>
           </div>
           <Button onClick={() => actions.add(tab === "casa" ? "shared" : "personal")}>
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Adicionar</span>
@@ -136,7 +137,8 @@ export default function App() {
         {tab === "inicio" && <Overview b={view.b} shared={shared} me={user} month={month} accounts={view.accounts} actions={actions} setTab={setTab} />}
         {tab === "fluxo" && <Flow b={view.b} series={view.series} categories={view.categories} />}
         {tab === "cartoes" && <Cards accounts={view.accounts} month={month} actions={actions} />}
-        {tab === "casa" && <House b={view.b} shared={shared} me={user} actions={actions} storageLabel={storageLabel} />}
+        {tab === "casa" && <House b={view.b} shared={shared} me={user} actions={actions} storageLabel={storageLabel} onOpenDs={() => setTab("ds")} />}
+        {tab === "ds" && <DesignSystem users={shared.users} month={month} />}
       </main>
       <BottomNav tab={tab} setTab={setTab} />
       <AddTransactionModal

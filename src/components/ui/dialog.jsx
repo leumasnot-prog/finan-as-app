@@ -17,7 +17,7 @@ export const DialogContent = React.forwardRef(({ className, children, ...props }
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed z-50 max-h-[92dvh] w-full overflow-y-auto border bg-card p-5 shadow-xl outline-none",
+        "fixed z-50 max-h-[92dvh] w-full overflow-y-auto border bg-card p-5 shadow-pop outline-none",
         "inset-x-0 bottom-0 rounded-t-2xl pb-[max(1.25rem,env(safe-area-inset-bottom))]",
         "sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl",
         className

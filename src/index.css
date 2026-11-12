@@ -10,14 +10,20 @@
     --muted: 220 16% 94%;
     --muted-foreground: 220 9% 44%;
     --border: 220 14% 90%;
-    --ring: 221 83% 53%;
-    --primary: 221 83% 53%;
+    --ring: 226 81% 49%;
+    --primary: 226 81% 49%;
     --primary-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
-    --p1: 221 83% 53%;
-    --p2: 345 86% 60%;
-    --ok: 142 64% 36%;
+    --p1: 226 81% 49%;
+    --p2: 345 78% 51%;
+    --ok: 142 64% 29%;
     --navy: 224 64% 28%;
+    --tint: 211 92% 95%;
+    --tint-foreground: 226 81% 42%;
+    --warn: 30 92% 34%;
+    --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
+    --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 24px -6px rgb(16 24 40 / 0.12);
+    --shadow-cta: 0 2px 10px hsl(226 81% 49% / 0.28);
   }
   .dark {
     --background: 224 20% 8%;
@@ -26,14 +32,20 @@
     --muted: 224 14% 18%;
     --muted-foreground: 220 9% 62%;
     --border: 224 12% 20%;
-    --ring: 217 91% 62%;
-    --primary: 217 91% 60%;
+    --ring: 217 91% 66%;
+    --primary: 222 84% 55%;
     --primary-foreground: 0 0% 100%;
-    --destructive: 0 72% 58%;
-    --p1: 217 91% 60%;
-    --p2: 345 86% 64%;
+    --destructive: 0 84% 66%;
+    --p1: 222 84% 55%;
+    --p2: 345 74% 52%;
     --ok: 142 55% 48%;
     --navy: 221 60% 42%;
+    --tint: 222 45% 18%;
+    --tint-foreground: 214 95% 78%;
+    --warn: 36 92% 58%;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 12px 28px -6px rgb(0 0 0 / 0.6);
+    --shadow-cta: 0 2px 10px hsl(222 84% 55% / 0.35);
   }
   * { @apply border-border; }
   html { -webkit-tap-highlight-color: transparent; }

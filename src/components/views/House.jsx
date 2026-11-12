@@ -6,7 +6,7 @@ import { PrivacyCard, SplitCard } from "@/components/OverviewCards";
 import { Avatar } from "@/components/Avatar";
 import { USERS } from "@/lib/seed";
 
-export function House({ b, shared, me, actions, storageLabel }) {
+export function House({ b, shared, me, actions, storageLabel, onOpenDs }) {
   return (
     <div className="grid gap-4 xl:grid-cols-3">
       <SplitCard className="xl:col-span-2" b={b} shared={shared} me={me} onToggleSettled={actions.toggleSettled} onEdit={actions.edit} />
@@ -32,6 +32,7 @@ export function House({ b, shared, me, actions, storageLabel }) {
           <Button variant="outline" size="sm" className="mt-3" onClick={actions.reset}>
             <RotateCcw className="h-3 w-3" />Restaurar exemplo do mês
           </Button>
+          <Button variant="ghost" size="sm" className="mt-3 lg:hidden" onClick={onOpenDs}>Design system</Button>
         </Card>
       </div>
     </div>

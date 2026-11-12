@@ -36,4 +36,6 @@ Pix dependem só do documento compartilhado, então os dois chegam ao mesmo núm
 dele. No `localStorage` o seletor "Ver como" apenas simula as duas pessoas no mesmo
 navegador — privacidade real exige um backend com contas separadas.
 
+Design system: [`docs/design-system.md`](docs/design-system.md) e, no app, **Sistema → Design system**.
+
 Dados de exemplo: dezembro/2026 (`src/lib/seed.js`).
