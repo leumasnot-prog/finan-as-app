@@ -9,6 +9,7 @@
 // de verdade exige que cada pessoa esteja no próprio dispositivo/conta.
 
 import { initialData, USERS } from "./seed.js";
+import { migrate, needsMigration, stamp } from "./migrations.js";
 
 const hasClaudeStorage = () =>
   typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -67,43 +68,53 @@ export function splitSeed(data = initialData) {
 const emptyShared = (month) => ({ month, users: initialData.users, accounts: [] });
 const emptyPersonal = (user) => ({ owner: user, incomes: [], accounts: [] });
 
+// Lê um documento já na versão atual do schema. Se estava em versão antiga,
+// grava de volta migrado (R7) — assim a migração roda uma vez por documento.
+async function read(key, shared, kind) {
+  const doc = await backend.get(key, shared);
+  if (!needsMigration(doc)) return doc;
+  const migrated = migrate(doc, kind);
+  await backend.set(key, migrated, shared);
+  return migrated;
+}
+
 export const StorageManager = {
   isClaude: hasClaudeStorage,
 
   async loadSession() {
-    return (await backend.get(SESSION_KEY, false)) ?? {
+    return (await read(SESSION_KEY, false, "session")) ?? stamp({
       currentUser: initialData.currentUser,
       month: initialData.month,
       theme: "light",
-    };
+    });
   },
   saveSession(session) {
-    return backend.set(SESSION_KEY, session, false);
+    return backend.set(SESSION_KEY, stamp(session), false);
   },
 
   // Carrega SOMENTE o compartilhado + o pessoal do usuário atual.
   async load(currentUser, month) {
     let [shared, mine] = await Promise.all([
-      backend.get(sharedKey(month), true),
-      backend.get(personalKey(currentUser, month), false),
+      read(sharedKey(month), true, "shared"),
+      read(personalKey(currentUser, month), false, "personal"),
     ]);
     const seed = month === initialData.month ? splitSeed() : null;
     if (!shared) {
-      shared = seed?.shared ?? emptyShared(month);
+      shared = stamp(seed?.shared ?? emptyShared(month));
       await backend.set(sharedKey(month), shared, true);
     }
     if (!mine) {
-      mine = seed?.personal[currentUser] ?? emptyPersonal(currentUser);
+      mine = stamp(seed?.personal[currentUser] ?? emptyPersonal(currentUser));
       await backend.set(personalKey(currentUser, month), mine, false);
     }
     return { shared, mine };
   },
 
   saveShared(month, shared) {
-    return backend.set(sharedKey(month), shared, true);
+    return backend.set(sharedKey(month), stamp(shared), true);
   },
   savePersonal(user, month, mine) {
-    return backend.set(personalKey(user, month), mine, false);
+    return backend.set(personalKey(user, month), stamp(mine), false);
   },
 
   async reset(month) {

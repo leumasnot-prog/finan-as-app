@@ -90,7 +90,7 @@ graph TD
   N16 --> N18
 ```
 
-**Fronteira inicial (podem começar já, em paralelo):** N1, N2, N14 (decisão).
+**Fronteira atual (podem começar já, em paralelo):** N3, N4, N6, N7, N10, N12, e as decisões N14 e N19.
 **Caminho crítico para uso real por duas pessoas:** N2 → N15 → N16 → N17 (com N14 decidido).
 **Maior valor sem backend:** N2 → N4 → N5 / N11.
 
@@ -98,8 +98,8 @@ graph TD
 
 | Nó | Tarefa | Depende de | Tamanho | Feito |
 | --- | --- | --- | --- | --- |
-| N1 | CI: teste + build | — | P | [ ] |
-| N2 | Versão de schema + migração | — | P | [ ] |
+| N1 | CI: teste + build | — | P | [x] |
+| N2 | Versão de schema + migração | — | P | [x] |
 | N3 | Testes de componente | N1 | M | [ ] |
 | N4 | Contas recorrentes e virada de mês | N2 | M | [ ] |
 | N5 | Parcelas e próximas faturas | N4 | M | [ ] |
