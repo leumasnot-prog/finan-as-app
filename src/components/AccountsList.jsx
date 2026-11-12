@@ -3,9 +3,10 @@ import { Check, Lock, Users } from "lucide-react";
 import { Card, CardHint, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/Money";
 import { cn, money } from "@/lib/utils";
+import { CATEGORIES } from "@/lib/seed";
 
 // Recebe apenas contas já filtradas por privacidade (visibleAccounts).
-export function AccountsList({ accounts, onTogglePaid, onEdit, className }) {
+export function AccountsList({ accounts, onTogglePaid, onEdit, className, solo }) {
   const [day, setDay] = useState(null);
   const pending = accounts.filter((a) => !a.paid);
   const days = [...new Set(accounts.map((a) => a.dueDay))].sort((a, b) => a - b);
@@ -17,7 +18,7 @@ export function AccountsList({ accounts, onTogglePaid, onEdit, className }) {
     <Card className={className}>
       <div className="flex items-baseline gap-2">
         <CardTitle>Contas a pagar</CardTitle>
-        <CardHint>{active ? `• dia ${String(active).padStart(2, "0")}` : "• sua parte"}</CardHint>
+        <CardHint>{active ? `• dia ${String(active).padStart(2, "0")}` : solo ? "• no mês" : "• sua parte"}</CardHint>
       </div>
       <Money value={totalPending} size="md" className="mt-4 block" />
       <CardHint className="mt-2">
@@ -63,8 +64,8 @@ export function AccountsList({ accounts, onTogglePaid, onEdit, className }) {
               <span className="min-w-0 flex-1">
                 <span className={cn("block truncate text-sm font-medium", a.paid && "text-muted-foreground line-through")}>{a.name}</span>
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  {a.type === "shared" ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                  {a.type === "shared" ? `Casa · total ${money(a.amount)}` : "Só você vê"} · dia {String(a.dueDay).padStart(2, "0")}
+                  {!solo && (a.type === "shared" ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />)}
+                  {solo ? (CATEGORIES[a.category] ?? "Conta") : a.type === "shared" ? `Casa · total ${money(a.amount)}` : "Só você vê"} · dia {String(a.dueDay).padStart(2, "0")}
                 </span>
               </span>
               <span className={cn("text-sm font-semibold whitespace-nowrap", a.paid && "text-muted-foreground")}>{money(a.myShare)}</span>

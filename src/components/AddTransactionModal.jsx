@@ -6,6 +6,7 @@ import { Input, Label, Select } from "@/components/ui/input";
 import { CARD_THEMES } from "@/components/CreditCardVisual";
 import { CATEGORIES } from "@/lib/seed";
 import { cn, uid } from "@/lib/utils";
+import { splitLabel } from "@/lib/finance";
 
 const KINDS = [
   { id: "shared", label: "Da casa", icon: Users, hint: "Os dois veem e dividem." },
@@ -20,7 +21,7 @@ const blank = (kind, me) => ({
 });
 
 // editing: { kind, item } | null
-export function AddTransactionModal({ open, onOpenChange, editing, defaultKind = "shared", me, users, onSave, onDelete }) {
+export function AddTransactionModal({ open, onOpenChange, editing, defaultKind = "shared", me, users, solo, onSave, onDelete }) {
   const [f, setF] = useState(blank(defaultKind, me));
   useEffect(() => {
     if (!open) return;
@@ -67,7 +68,11 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
     onOpenChange(false);
   }
 
-  const kind = KINDS.find((k) => k.id === f.kind);
+  // No modo "só eu" não existe conta da casa nem privacidade a explicar.
+  const kinds = solo
+    ? [{ ...KINDS[1], label: "Conta", hint: "Uma conta do seu mês." }, { ...KINDS[2], hint: "Quanto entra no mês." }]
+    : KINDS;
+  const kind = kinds.find((k) => k.id === f.kind) ?? KINDS.find((k) => k.id === f.kind);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -75,8 +80,8 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
         <DialogDescription className="mt-1">{kind.hint}</DialogDescription>
         <form onSubmit={submit} className="mt-4 space-y-4">
           {!editing && (
-            <div className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1" role="tablist">
-              {KINDS.map((k) => (
+            <div className={cn("grid gap-1 rounded-md bg-muted p-1", solo ? "grid-cols-2" : "grid-cols-3")} role="tablist">
+              {kinds.map((k) => (
                 <button key={k.id} type="button" role="tab" aria-selected={f.kind === k.id}
                   onClick={() => setF((p) => ({ ...p, kind: k.id }))}
                   className={cn("flex items-center justify-center gap-1.5 rounded px-2 py-2 text-xs font-semibold",
@@ -129,7 +134,7 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
               <div>
                 <Label htmlFor="tx-split">Divisão ({users.pessoa1.name} / {users.pessoa2.name})</Label>
                 <Select id="tx-split" value={f.split} onChange={set("split")}>
-                  {[...new Set([...SPLITS, f.split])].map((s) => <option key={s}>{s}</option>)}
+                  {[...new Set([...SPLITS, f.split])].map((s) => <option key={s} value={s}>{splitLabel(s, users)}</option>)}
                 </Select>
               </div>
               <div>

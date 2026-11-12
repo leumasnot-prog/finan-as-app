@@ -6,7 +6,7 @@ import { AccountsList } from "@/components/AccountsList";
 import { CreditCardVisual } from "@/components/CreditCardVisual";
 import { Money } from "@/components/Money";
 
-export function CardsSummary({ cards, month, onSeeAll }) {
+export function CardsSummary({ cards, month, onSeeAll, solo }) {
   const total = cards.reduce((s, a) => s + a.myShare, 0);
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -14,7 +14,7 @@ export function CardsSummary({ cards, month, onSeeAll }) {
         <CardTitle>Cartões</CardTitle>
         <Button variant="outline" size="sm" onClick={onSeeAll}>Ver faturas<ChevronRight className="h-3 w-3" /></Button>
       </div>
-      <CardHint className="mt-5">Faturas do mês · sua parte</CardHint>
+      <CardHint className="mt-5">{solo ? "Faturas do mês" : "Faturas do mês · sua parte"}</CardHint>
       <Money value={total} className="mt-1" />
       {cards.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">Nenhum cartão. Adicione uma conta na categoria “Cartão”.</p>
@@ -27,20 +27,24 @@ export function CardsSummary({ cards, month, onSeeAll }) {
   );
 }
 
-export function Overview({ b, shared, me, month, accounts, actions, setTab }) {
+export function Overview({ b, shared, me, month, accounts, actions, setTab, solo }) {
   const cards = accounts.filter((a) => a.category === "cartao");
   return (
     <div className="grid gap-4 xl:grid-cols-3">
       <div className="space-y-4 xl:col-span-2">
-        <BalanceCard b={b} onEditIncome={actions.editIncome} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <SplitCard b={b} shared={shared} me={me} onToggleSettled={actions.toggleSettled} onEdit={actions.edit} />
-          <CardsSummary cards={cards} month={month} onSeeAll={() => setTab("cartoes")} />
-        </div>
+        <BalanceCard b={b} onEditIncome={actions.editIncome} solo={solo} />
+        {solo ? (
+          <CardsSummary cards={cards} month={month} onSeeAll={() => setTab("cartoes")} solo />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <SplitCard b={b} shared={shared} me={me} onToggleSettled={actions.toggleSettled} onEdit={actions.edit} />
+            <CardsSummary cards={cards} month={month} onSeeAll={() => setTab("cartoes")} />
+          </div>
+        )}
       </div>
       <div className="space-y-4">
-        <AccountsList accounts={accounts} onTogglePaid={actions.togglePaid} onEdit={actions.edit} />
-        <PrivacyCard b={b} shared={shared} me={me} />
+        <AccountsList accounts={accounts} onTogglePaid={actions.togglePaid} onEdit={actions.edit} solo={solo} />
+        {!solo && <PrivacyCard b={b} shared={shared} me={me} />}
       </div>
     </div>
   );

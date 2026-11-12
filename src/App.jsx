@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BottomNav, Logo, NAV, Sidebar, ThemeToggle, UserSwitch } from "@/components/Nav";
+import { BottomNav, Logo, navFor, Sidebar, ThemeToggle, UserSwitch } from "@/components/Nav";
 import { AddTransactionModal } from "@/components/AddTransactionModal";
 import { Overview } from "@/components/views/Overview";
 import { Flow } from "@/components/views/Flow";
@@ -51,16 +51,20 @@ export default function App() {
   }, [data]);
 
   const ready = data && data.user === user && data.month === month;
+  // Modo "só eu": as contas da casa ficam guardadas, mas saem de todas as contas e telas.
+  const solo = session?.mode === "solo";
   const view = useMemo(() => {
     if (!ready) return null;
     const [y, m] = data.month.split("-").map(Number);
+    const house = solo ? { ...data.shared, accounts: [] } : data.shared;
     return {
-      b: calculateBalances(data.shared, data.mine, data.user),
-      accounts: visibleAccounts(data.shared, data.mine, data.user),
-      series: cashFlowSeries(data.shared, data.mine, data.user, new Date(y, m, 0).getDate()),
-      categories: byCategory(data.shared, data.mine, data.user),
+      house,
+      b: calculateBalances(house, data.mine, data.user),
+      accounts: visibleAccounts(house, data.mine, data.user),
+      series: cashFlowSeries(house, data.mine, data.user, new Date(y, m, 0).getDate()),
+      categories: byCategory(house, data.mine, data.user),
     };
-  }, [data, ready]);
+  }, [data, ready, solo]);
 
   if (!ready) return <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">Carregando…</div>;
 
@@ -71,7 +75,7 @@ export default function App() {
   const strip = ({ myShare, ...a }) => a;
 
   const actions = {
-    add: (kind = "shared") => setModal({ open: true, editing: null, kind }),
+    add: (kind = "shared") => setModal({ open: true, editing: null, kind: solo && kind === "shared" ? "personal" : kind }),
     edit: (a) => setModal({ open: true, editing: { kind: a.type, item: strip(a) }, kind: a.type }),
     editIncome: () => {
       const inc = mine.incomes[0];
@@ -105,18 +109,22 @@ export default function App() {
   const setMonth = (delta) => setSession((s) => ({ ...s, month: shiftMonth(s.month, delta) }));
   const switchUser = (u) => setSession((s) => ({ ...s, currentUser: u }));
   const setTheme = (theme) => setSession((s) => ({ ...s, theme }));
+  const setMode = (mode) => setSession((s) => ({ ...s, mode }));
+  const nav = navFor(solo);
   const storageLabel = StorageManager.isClaude()
     ? "Salvo no window.storage: contas da casa no espaço compartilhado, renda e contas pessoais no seu espaço privado."
-    : "Salvo neste navegador (localStorage). “Ver como” simula as duas pessoas no mesmo aparelho.";
+    : solo
+      ? "Salvo neste navegador (localStorage)."
+      : "Salvo neste navegador (localStorage). “Ver como” simula as duas pessoas no mesmo aparelho.";
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-[1500px] gap-4 p-3 pb-24 sm:p-4 lg:pb-4">
-      <Sidebar tab={tab} setTab={setTab} me={user} users={shared.users} onSwitch={switchUser} theme={session.theme} onTheme={setTheme} />
+      <Sidebar tab={tab} setTab={setTab} me={user} users={shared.users} onSwitch={switchUser} theme={session.theme} onTheme={setTheme} solo={solo} onMode={setMode} />
       <main className="min-w-0 flex-1 space-y-4">
         <div className="flex items-center justify-between lg:hidden">
-          <Logo users={shared.users} />
+          <Logo users={shared.users} solo={solo} me={user} />
           <div className="flex items-center gap-2">
-            <UserSwitch compact me={user} users={shared.users} onSwitch={switchUser} />
+            {!solo && <UserSwitch compact me={user} users={shared.users} onSwitch={switchUser} />}
             <ThemeToggle theme={session.theme} onTheme={setTheme} />
           </div>
         </div>
@@ -127,23 +135,23 @@ export default function App() {
             <h1 className="truncate font-display text-xl font-bold sm:text-2xl">
               {ml.name} <span className="font-medium text-muted-foreground">{ml.year}</span>
             </h1>
-            <p className="text-xs text-muted-foreground lg:hidden">{NAV.find((n) => n.id === tab)?.label ?? "Design system"}</p>
+            <p className="text-xs text-muted-foreground lg:hidden">{nav.find((n) => n.id === tab)?.label ?? "Design system"}</p>
           </div>
           <Button onClick={() => actions.add(tab === "casa" ? "shared" : "personal")}>
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Adicionar</span>
           </Button>
         </header>
 
-        {tab === "inicio" && <Overview b={view.b} shared={shared} me={user} month={month} accounts={view.accounts} actions={actions} setTab={setTab} />}
-        {tab === "fluxo" && <Flow b={view.b} series={view.series} categories={view.categories} />}
-        {tab === "cartoes" && <Cards accounts={view.accounts} month={month} actions={actions} />}
-        {tab === "casa" && <House b={view.b} shared={shared} me={user} actions={actions} storageLabel={storageLabel} onOpenDs={() => setTab("ds")} />}
+        {tab === "inicio" && <Overview b={view.b} shared={view.house} me={user} month={month} accounts={view.accounts} actions={actions} setTab={setTab} solo={solo} />}
+        {tab === "fluxo" && <Flow b={view.b} series={view.series} categories={view.categories} solo={solo} />}
+        {tab === "cartoes" && <Cards accounts={view.accounts} month={month} actions={actions} solo={solo} />}
+        {tab === "casa" && <House b={view.b} shared={view.house} me={user} actions={actions} storageLabel={storageLabel} onOpenDs={() => setTab("ds")} solo={solo} onMode={setMode} />}
         {tab === "ds" && <DesignSystem users={shared.users} month={month} />}
       </main>
-      <BottomNav tab={tab} setTab={setTab} />
+      <BottomNav tab={tab} setTab={setTab} solo={solo} />
       <AddTransactionModal
         open={modal.open} onOpenChange={(open) => setModal((m) => ({ ...m, open }))}
-        editing={modal.editing} defaultKind={modal.kind} me={user} users={shared.users}
+        editing={modal.editing} defaultKind={modal.kind} me={user} users={shared.users} solo={solo}
         onSave={actions.save} onDelete={actions.remove}
       />
     </div>

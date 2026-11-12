@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCardVisual } from "@/components/CreditCardVisual";
 import { cn, money } from "@/lib/utils";
 
-export function Cards({ accounts, month, actions }) {
+export function Cards({ accounts, month, actions, solo }) {
   const cards = accounts.filter((a) => a.category === "cartao");
   if (cards.length === 0)
     return (
@@ -23,10 +23,12 @@ export function Cards({ accounts, month, actions }) {
             <CreditCardVisual account={a} month={month} className="mx-auto" />
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardHint className="flex items-center gap-1">
-                  {a.type === "shared" ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                  {a.type === "shared" ? `Compartilhado · ${a.split}` : "Só você vê"}
-                </CardHint>
+                {solo ? <CardHint>Fatura do mês</CardHint> : (
+                  <CardHint className="flex items-center gap-1">
+                    {a.type === "shared" ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                    {a.type === "shared" ? `Compartilhado · ${a.split}` : "Só você vê"}
+                  </CardHint>
+                )}
                 <p className="mt-1 font-display text-2xl font-bold">{money(a.amount)}</p>
                 {a.type === "shared" && <CardHint>sua parte: <strong className="text-foreground">{money(a.myShare)}</strong></CardHint>}
               </div>

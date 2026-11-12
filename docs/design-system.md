@@ -109,6 +109,7 @@ Breakpoints: `sm` 640 (valores maiores), `md` 768 (2 colunas), `lg` 1024 (sideba
 - **Linha de conta.** Círculo de status à esquerda (vazio = aberta, verde com check = paga), nome + metadados em 11px, valor à direita em 14px/600. Em conta da casa o valor é **a parte de quem olha**; o total vai nos metadados.
 - **Privacidade.** Conta pessoal: cadeado + "Só você vê". Conta da casa: ícone de pessoas. Dado do parceiro indisponível: cadeado + "privado".
 - **Gráficos (Recharts).** Séries usam os mesmos tokens (`--navy`, `--p1`); grade só no eixo de valor, em `--border`; eixos sem linha, rótulos 11px em `--muted-foreground`; tooltip é um card com `shadow-pop`.
+- **Modo "Só eu".** Some tudo que fala de casal: card de divisão, card de privacidade, "Ver como", cadeados e o segmento navy da barra. A aba Casa vira Ajustes e o logo mostra um avatar só. Rótulos trocam "sua parte" por "no mês".
 - **Texto.** Português direto, em segunda pessoa ("Você paga", "sua parte"). Botões dizem o que acontece ("Marcar feito", "Salvar").
 
 ## 6. Acessibilidade

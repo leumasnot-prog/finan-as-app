@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Money } from "@/components/Money";
 import { Avatar, dotClass } from "@/components/Avatar";
 import { cn, money } from "@/lib/utils";
+import { splitLabel } from "@/lib/finance";
 
 const pctFmt = (v) => `${Math.round(v)}%`;
 
-export function BalanceCard({ b, onEditIncome }) {
+export function BalanceCard({ b, onEditIncome, solo }) {
   const negative = b.myBalance < 0;
   const total = Math.max(b.myIncome, b.myTotal, 1);
   const seg = (v) => `${(Math.max(0, v) / total) * 100}%`;
@@ -26,13 +27,13 @@ export function BalanceCard({ b, onEditIncome }) {
       </div>
 
       <div className="mt-6 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-muted" role="img"
-        aria-label={`Casa ${pctFmt(b.pct.house)}, pessoal ${pctFmt(b.pct.personal)}, sobra ${pctFmt(Math.max(0, b.pct.free))}`}>
-        <div className="bg-navy" style={{ width: seg(b.myShareOfHouse) }} />
+        aria-label={`${solo ? "" : `Casa ${pctFmt(b.pct.house)}, `}contas ${pctFmt(b.pct.personal)}, sobra ${pctFmt(Math.max(0, b.pct.free))}`}>
+        {!solo && <div className="bg-navy" style={{ width: seg(b.myShareOfHouse) }} />}
         <div className="bg-p1" style={{ width: seg(b.myPersonal) }} />
         {!negative && <div className="bg-ok" style={{ width: seg(b.myBalance) }} />}
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:grid-cols-4">
+      <dl className={cn("mt-4 grid grid-cols-2 gap-x-4 gap-y-4 text-sm", solo ? "sm:grid-cols-3" : "sm:grid-cols-4")}>
         <div>
           <dt className="text-xs text-muted-foreground">Salário</dt>
           <dd className="mt-0.5 flex items-center gap-1.5 font-semibold">
@@ -42,8 +43,8 @@ export function BalanceCard({ b, onEditIncome }) {
             </button>
           </dd>
         </div>
-        <Legend dot="bg-navy" label="Sua parte da casa" value={`− ${money(b.myShareOfHouse)}`} pct={b.pct.house} />
-        <Legend dot="bg-p1" label="Contas pessoais" value={`− ${money(b.myPersonal)}`} pct={b.pct.personal} />
+        {!solo && <Legend dot="bg-navy" label="Sua parte da casa" value={`− ${money(b.myShareOfHouse)}`} pct={b.pct.house} />}
+        <Legend dot="bg-p1" label={solo ? "Contas do mês" : "Contas pessoais"} value={`− ${money(b.myPersonal)}`} pct={b.pct.personal} />
         <Legend dot="bg-ok" label="= Sobra" value={money(b.myBalance)} pct={b.pct.free}
           valueClass={negative ? "text-destructive" : "text-ok"} />
       </dl>
@@ -111,7 +112,7 @@ export function SplitCard({ b, shared, me, onToggleSettled, onEdit, className })
             <button onClick={() => onEdit?.(a)} className="flex w-full items-center gap-2.5 py-2.5 text-left text-sm hover:bg-muted/50">
               <span className={cn("h-2 w-2 rounded-full", dotClass(a.paidBy))} />
               <span className="flex-1 truncate">{a.name}</span>
-              <span className="text-xs text-muted-foreground">{a.split}</span>
+              <span className="text-xs text-muted-foreground">{splitLabel(a.split, users)}</span>
               <span className="font-semibold whitespace-nowrap">{money(a.amount)}</span>
             </button>
           </li>

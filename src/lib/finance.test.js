@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateBalances, calculateHouse, parseSplit, shareOf, visibleAccounts } from "./finance.js";
+import { calculateBalances, calculateHouse, parseSplit, shareOf, splitLabel, visibleAccounts } from "./finance.js";
 import { splitSeed } from "./storage.js";
 
 const { shared, personal } = splitSeed();
@@ -65,5 +65,25 @@ describe("privacidade", () => {
     const ids = visibleAccounts(shared, personal.pessoa2, "pessoa2").map((a) => a.id);
     expect(ids).not.toContain("cartao-pessoa1");
     expect(ids).toContain("supermercado-pessoa2");
+  });
+});
+
+describe("uma pessoa só", () => {
+  it("modo só eu: sem casa, saldo = renda − contas próprias, sem acerto", () => {
+    const r = calculateBalances({ ...shared, accounts: [] }, personal.pessoa1, "pessoa1");
+    expect(r.totalHouse).toBe(0);
+    expect(r.myShareOfHouse).toBe(0);
+    expect(r.myBalance).toBe(28000 - 14529.5);
+    expect(r.settlement).toBeNull();
+  });
+
+  it("conta da casa 100% de uma pessoa", () => {
+    const users = { pessoa1: { name: "Ana" }, pessoa2: { name: "Bia" } };
+    expect(splitLabel("100/0", users)).toBe("Só Ana");
+    expect(splitLabel("0/100", users)).toBe("Só Bia");
+    expect(splitLabel("60/40", users)).toBe("60/40");
+    const h = calculateHouse([{ id: "x", amount: 300, split: "100/0", paidBy: "pessoa2" }]);
+    expect(h.fair).toEqual({ pessoa1: 300, pessoa2: 0 });
+    expect(h.settlement).toEqual({ from: "pessoa1", to: "pessoa2", amount: 300 });
   });
 });

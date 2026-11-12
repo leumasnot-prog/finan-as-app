@@ -23,6 +23,14 @@ export function parseSplit(split) {
   return { pessoa1: a / (a + b), pessoa2: b / (a + b) };
 }
 
+// "100/0" → "Só Ana"; demais ficam como estão.
+export function splitLabel(split, users) {
+  const r = parseSplit(split);
+  if (r.pessoa2 === 0) return `Só ${users.pessoa1.name}`;
+  if (r.pessoa1 === 0) return `Só ${users.pessoa2.name}`;
+  return split;
+}
+
 // Quanto de uma conta compartilhada cabe a cada um (centavos fecham sempre).
 export function shareOf(account) {
   const ratio = parseSplit(account.split);

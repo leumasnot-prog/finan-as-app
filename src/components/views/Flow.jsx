@@ -22,18 +22,18 @@ function Tip({ active, payload, label, title }) {
   );
 }
 
-export function Flow({ b, series, categories }) {
+export function Flow({ b, series, categories, solo }) {
   const data = categories.map((c) => ({ ...c, label: CATEGORIES[c.category] ?? c.category }));
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Entradas" value={b.myIncome} hint="sua renda no mês" />
-        <Stat label="Saídas" value={b.myTotal} hint="sua parte da casa + pessoal" />
+        <Stat label="Saídas" value={b.myTotal} hint={solo ? "todas as suas contas" : "sua parte da casa + pessoal"} />
         <Stat label="Sobra" value={b.myBalance} hint="depois de tudo pago" tone={b.myBalance < 0 ? "text-destructive" : "text-ok"} />
       </div>
       <Card>
         <CardTitle>Saldo ao longo do mês</CardTitle>
-        <CardHint className="mt-2">Renda no dia 1; cada conta sai no vencimento (só a sua parte).</CardHint>
+        <CardHint className="mt-2">Renda no dia 1; cada conta sai no vencimento{solo ? "" : " (só a sua parte)"}.</CardHint>
         <div className="mt-4 h-64">
           <ResponsiveContainer>
             <AreaChart data={series} margin={{ left: -12, right: 8, top: 8 }}>
@@ -55,10 +55,12 @@ export function Flow({ b, series, categories }) {
       </Card>
       <Card>
         <CardTitle>Para onde vai</CardTitle>
-        <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-navy" />Sua parte da casa</span>
-          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-p1" />Pessoal</span>
-        </div>
+        {!solo && (
+          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-navy" />Sua parte da casa</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-p1" />Pessoal</span>
+          </div>
+        )}
         <div className="mt-4" style={{ height: Math.max(120, data.length * 48) }}>
           <ResponsiveContainer>
             <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }} barSize={18}>
@@ -67,7 +69,7 @@ export function Flow({ b, series, categories }) {
               <YAxis type="category" dataKey="label" tick={axis} tickLine={false} axisLine={false} width={84} />
               <Tooltip cursor={{ fill: "hsl(var(--muted))" }} content={<Tip title={(l) => l} />} />
               <Bar dataKey="casa" name="Casa" stackId="a" fill="hsl(var(--navy))" radius={[4, 0, 0, 4]} />
-              <Bar dataKey="pessoal" name="Pessoal" stackId="a" fill="hsl(var(--p1))" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="pessoal" name={solo ? "Contas" : "Pessoal"} stackId="a" fill="hsl(var(--p1))" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

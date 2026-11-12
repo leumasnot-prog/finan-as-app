@@ -29,6 +29,13 @@ Pix dependem só do documento compartilhado, então os dois chegam ao mesmo núm
 - **Quem paga**: `paidBy` de cada conta. Acerto = o que a pessoa paga − a parte justa dela.
 - **Saldo previsto**: renda − parte da casa − contas pessoais (só do usuário atual).
 
+## Uma pessoa só
+
+- **Modo "Só eu"** (sidebar, ou aba Casa → Modo de uso): o app vira finanças pessoais — sem divisão, parceiro
+  nem acerto. As contas da casa não entram em nenhum cálculo, mas continuam guardadas e voltam ao escolher "Casal".
+  A escolha é por pessoa/navegador (fica na sessão, não no documento compartilhado).
+- **Conta da casa de uma pessoa só**: no modo Casal, a divisão aceita "Só Pessoa 1" / "Só Pessoa 2" (`100/0`, `0/100`).
+
 ## Persistência
 
 `StorageManager` usa `window.storage` quando disponível (Artifacts do Claude:
