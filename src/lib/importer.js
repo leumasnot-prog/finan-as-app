@@ -400,7 +400,9 @@ export function prepareImport(transactions, { categories = [], rules = [], accou
     const rule = byKey.get(key) ?? rules.find((r) => r.contains && strip(t.raw).includes(strip(r.contains)));
     const installment = parseInstallment(t.installmentText) ?? parseInstallment(t.raw.match(/parc\w*\s*\d+\s*\/\s*\d+|\b\d{1,2}\/\d{1,2}\s*$/i)?.[0]);
     const self = selfKeys.some((k) => strip(t.raw).includes(k));
-    const skip = t.amount <= 0 || self || NOT_EXPENSE.test(t.raw) || /credito liberado/i.test(strip(t.operation ?? ""));
+    // rule.include: a pessoa pediu para contar algo que normalmente é ignorado
+    // (ex.: pagamento de um cartão cuja fatura detalhada não existe).
+    const skip = !(rule?.include && t.amount > 0) && (t.amount <= 0 || self || NOT_EXPENSE.test(t.raw) || /credito liberado/i.test(strip(t.operation ?? "")));
     return {
       id: `imp-${i}-${t.fitid}`,
       ...t,
