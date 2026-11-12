@@ -18,7 +18,7 @@ import { byCategory, calculateBalances, cashFlowSeries, visibleAccounts } from "
 import { monthLabel, shiftMonth } from "@/lib/seed";
 import { uid } from "@/lib/utils";
 import { cleanName } from "@/lib/importer";
-import { makeBackup } from "@/lib/backup";
+import { makeBackup, readBackup } from "@/lib/backup";
 
 export default function App() {
   const [session, setSession] = useState(null); // { currentUser, month, theme }
@@ -33,7 +33,25 @@ export default function App() {
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(t); }, [notice]);
 
   // 1. sessão (quem está olhando, mês, tema)
-  useEffect(() => { StorageManager.loadSession().then(setSession); }, []);
+  useEffect(() => {
+    (async () => {
+      // Página publicada com dados embutidos (window.__DUOFINN_PRELOAD__, um
+      // backup): carrega uma vez por backup neste navegador e depois segue normal,
+      // sem sobrescrever o que a pessoa mudou.
+      const pre = typeof window !== "undefined" && window.__DUOFINN_PRELOAD__;
+      if (pre) {
+        const flag = `duofinn:preload:${pre.exportedAt}`;
+        let done = false;
+        try { done = !!localStorage.getItem(flag); } catch { /* sem localStorage */ }
+        if (!done) {
+          const r = readBackup(JSON.stringify(pre));
+          if (r.ok) await StorageManager.importDocs(r.docs);
+          try { localStorage.setItem(flag, "1"); } catch { /* ok */ }
+        }
+      }
+      setSession(await StorageManager.loadSession());
+    })();
+  }, []);
   useEffect(() => {
     if (!session) return;
     document.documentElement.classList.toggle("dark", session.theme === "dark");
