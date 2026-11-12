@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileUp, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav, Logo, navFor, Sidebar, ThemeToggle, UserSwitch } from "@/components/Nav";
 import { AddTransactionModal } from "@/components/AddTransactionModal";
@@ -12,10 +12,12 @@ import { Goals } from "@/components/views/Goals";
 import { Assets } from "@/components/views/Assets";
 import { AssetDialog, CardDialog, CategoryDialog, DepositDialog, GoalDialog } from "@/components/PlanningDialogs";
 import { walletCards } from "@/lib/planning";
+import { accountsForDest, ImportSheet } from "@/components/ImportSheet";
 import { StorageManager } from "@/lib/storage";
 import { byCategory, calculateBalances, cashFlowSeries, visibleAccounts } from "@/lib/finance";
 import { monthLabel, shiftMonth } from "@/lib/seed";
 import { uid } from "@/lib/utils";
+import { cleanName } from "@/lib/importer";
 
 export default function App() {
   const [session, setSession] = useState(null); // { currentUser, month, theme }
@@ -26,6 +28,8 @@ export default function App() {
   // diálogos das telas novas: { type, editing }
   const [dlg, setDlg] = useState({ type: null, editing: null });
   const closeDlg = (open) => !open && setDlg((d) => ({ ...d, type: null }));
+  const [notice, setNotice] = useState(null);
+  useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(null), 4500); return () => clearTimeout(t); }, [notice]);
 
   // 1. sessão (quem está olhando, mês, tema)
   useEffect(() => { StorageManager.loadSession().then(setSession); }, []);
@@ -129,6 +133,50 @@ export default function App() {
       else patchMine((p) => ({ ...p, accounts: flip(p.accounts) }));
     },
     // carteira
+    importFile: (cardId) => setDlg({ type: "import", editing: cardId ?? null }),
+    // Resultado da revisão: o que casou é conferido (valor do banco, sem duplicar);
+    // o novo entra como conta pessoal no mês da fatura (cartão) ou no mês da data (conta).
+    importRows: ({ rows, dest, card, invoiceMonth, learned }) => {
+      const snap = card && { name: card.name, theme: card.theme, color: card.color, last4: card.last4, limit: card.limit };
+      const matched = new Map(rows.filter((r) => r.match).map((r) => [r.match.id, r]));
+      if (matched.size && (!invoiceMonth || invoiceMonth === month)) {
+        const upd = (list) => list.map((a) => {
+          const r = matched.get(a.id);
+          return r ? { ...a, amount: r.amount, reconciled: true, date: r.date, paid: dest === "conta" ? true : a.paid } : a;
+        });
+        patchShared((s) => ({ ...s, accounts: upd(s.accounts) }));
+        patchMine((p) => ({ ...p, accounts: upd(p.accounts) }));
+      }
+      let created = 0;
+      for (const r of rows.filter((x) => !x.match)) {
+        const id = uid();
+        const start = invoiceMonth ?? r.date.slice(0, 7);
+        const base = {
+          id, name: r.name.trim() || cleanName(r.raw), amount: r.amount, type: "personal", owner: user,
+          dueDay: card ? card.dueDay ?? +r.date.slice(8, 10) : +r.date.slice(8, 10), category: r.category,
+          paid: dest === "conta", imported: true, raw: r.raw, date: r.date,
+          ...(card ? { cardId: card.id, card: snap } : {}),
+          ...(r.installment ? { installment: r.installment } : {}),
+        };
+        // Parcela 2/5 na fatura: as 3 que faltam já entram nos próximos meses.
+        const left = r.installment ? r.installment.total - r.installment.current : 0;
+        for (let k = 0; k <= left; k++) {
+          const m = shiftMonth(start, k);
+          const item = k === 0 ? base : { ...base, id: `${id}@${m}`, paid: false, installment: { ...r.installment, current: r.installment.current + k } };
+          if (m === month) actions.save("personal", item);
+          else StorageManager.addToMonth("personal", user, m, item);
+        }
+        created++;
+      }
+      if (learned.length) patchProfile((p) => {
+        const map = new Map((p.rules ?? []).map((x) => [x.key, x]));
+        for (const l of learned) map.set(l.key, l);
+        return { ...p, rules: [...map.values()] };
+      });
+      const parts = [created && `${created} ${created === 1 ? "lançamento novo" : "lançamentos novos"}`, matched.size && `${matched.size} já ${matched.size === 1 ? "lançado conferido" : "lançados conferidos"}`].filter(Boolean);
+      const away = invoiceMonth && invoiceMonth !== month ? ` em ${monthLabel(invoiceMonth).name}` : "";
+      setNotice(`Importado${away}: ${parts.join(" e ") || "nada novo"}.`);
+    },
     editCard: (c) => setDlg({ type: "card", editing: c }),
     saveCard: (c) => patchProfile((p) => ({ ...p, cards: upsert(p.cards ?? [], c) })),
     removeCard: (id) => patchProfile((p) => ({ ...p, cards: (p.cards ?? []).filter((c) => c.id !== id) })),
@@ -200,7 +248,10 @@ export default function App() {
             </h1>
             <p className="text-xs text-muted-foreground lg:hidden">{nav.find((n) => n.id === tab)?.label ?? "Design system"}</p>
           </div>
-          <Button onClick={() => (tab === "metas" ? actions.editGoal(null) : tab === "patrimonio" ? actions.editAsset(null) : tab === "cartoes" && view.wallet.length === 0 ? actions.editCard(null) : actions.add(tab === "casa" ? "shared" : "personal"))}>
+          <Button variant="outline" className="hidden sm:inline-flex" onClick={() => actions.importFile()}>
+            <FileUp className="h-4 w-4" />Importar
+          </Button>
+          <Button className="hidden lg:inline-flex" onClick={() => (tab === "metas" ? actions.editGoal(null) : tab === "patrimonio" ? actions.editAsset(null) : tab === "cartoes" && view.wallet.length === 0 ? actions.editCard(null) : actions.add(tab === "casa" ? "shared" : "personal"))}>
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Adicionar</span>
           </Button>
         </header>
@@ -214,19 +265,32 @@ export default function App() {
         {tab === "ds" && <DesignSystem users={shared.users} month={month} />}
       </main>
       <BottomNav tab={tab} setTab={setTab} solo={solo} />
+      {/* Celular: o "+" fica no alcance do polegar, acima da barra de abas. */}
+      <button type="button" aria-label="Adicionar" onClick={() => (tab === "metas" ? actions.editGoal(null) : tab === "patrimonio" ? actions.editAsset(null) : actions.add(tab === "casa" ? "shared" : "personal"))}
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-cta transition-transform active:scale-95 lg:hidden">
+        <Plus className="h-6 w-6" />
+      </button>
+      {notice && (
+        <div role="status" className="fixed inset-x-0 bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-50 mx-auto w-fit max-w-[calc(100%-2rem)] rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-pop lg:bottom-6">
+          {notice}
+        </div>
+      )}
+      <ImportSheet open={dlg.type === "import"} onOpenChange={closeDlg} wallet={view.wallet} categories={categories} rules={profile.rules ?? []}
+        month={month} defaultCard={dlg.type === "import" ? dlg.editing ?? undefined : undefined}
+        accountsFor={(dest, m) => (!m || m === month ? accountsForDest(view.accounts, dest) : [])} onImport={actions.importRows} />
       <AddTransactionModal
         open={modal.open} onOpenChange={(open) => setModal((m) => ({ ...m, open }))}
         editing={modal.editing} defaultKind={modal.kind} preset={modal.preset} me={user} users={shared.users} solo={solo}
         month={month} categories={categories} wallet={view.wallet} onNewCategory={() => actions.editCategory(null)}
         onSave={actions.save} onDelete={actions.remove}
       />
-      <CategoryDialog open={dlg.type === "category"} onOpenChange={closeDlg} editing={dlg.editing}
-        inUse={!!dlg.editing && view.accounts.some((a) => a.category === dlg.editing.id)}
+      <CategoryDialog open={dlg.type === "category"} onOpenChange={closeDlg} editing={dlg.type === "category" ? dlg.editing : null}
+        inUse={dlg.type === "category" && !!dlg.editing && view.accounts.some((a) => a.category === dlg.editing.id)}
         onSave={actions.saveCategory} onDelete={actions.removeCategory} />
-      <CardDialog open={dlg.type === "card"} onOpenChange={closeDlg} editing={dlg.editing} month={month} onSave={actions.saveCard} onDelete={actions.removeCard} />
-      <GoalDialog open={dlg.type === "goal"} onOpenChange={closeDlg} editing={dlg.editing} monthlySpend={view.b.myTotal} onSave={actions.saveGoal} onDelete={actions.removeGoal} />
-      <DepositDialog open={dlg.type === "deposit"} onOpenChange={closeDlg} goal={dlg.editing} suggested={dlg.suggested} onSave={actions.saveDeposit} />
-      <AssetDialog open={dlg.type === "asset"} onOpenChange={closeDlg} editing={dlg.editing} onSave={actions.saveAsset} onDelete={actions.removeAsset} />
+      <CardDialog open={dlg.type === "card"} onOpenChange={closeDlg} editing={dlg.type === "card" ? dlg.editing : null} month={month} onSave={actions.saveCard} onDelete={actions.removeCard} />
+      <GoalDialog open={dlg.type === "goal"} onOpenChange={closeDlg} editing={dlg.type === "goal" ? dlg.editing : null} monthlySpend={view.b.myTotal} onSave={actions.saveGoal} onDelete={actions.removeGoal} />
+      <DepositDialog open={dlg.type === "deposit"} onOpenChange={closeDlg} goal={dlg.type === "deposit" ? dlg.editing : null} suggested={dlg.suggested} onSave={actions.saveDeposit} />
+      <AssetDialog open={dlg.type === "asset"} onOpenChange={closeDlg} editing={dlg.type === "asset" ? dlg.editing : null} onSave={actions.saveAsset} onDelete={actions.removeAsset} />
     </div>
   );
 }

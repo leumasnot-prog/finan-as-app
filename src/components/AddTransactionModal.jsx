@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Lock, Plus, Trash2, Users, Wallet } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { MoneyInput } from "@/components/MoneyInput";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Emoji } from "@/components/Emoji";
@@ -107,22 +108,33 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
               ))}
             </div>
           )}
+          {/* O valor vem primeiro e grande: é o que a pessoa sabe de cabeça e o
+              que mais importa conferir. Teclado numérico, entra pelos centavos. */}
+          <div>
+            <Label htmlFor="tx-amount">Valor</Label>
+            <MoneyInput id="tx-amount" value={f.amount} onChange={(v) => setF((p) => ({ ...p, amount: v }))} autoFocus={!editing} />
+          </div>
           <div>
             <Label htmlFor="tx-name">Nome</Label>
-            <Input id="tx-name" value={f.name} onChange={set("name")} placeholder={isBill ? "Ex.: Condomínio" : "Ex.: Salário"} autoFocus />
+            <Input id="tx-name" value={f.name} onChange={set("name")} enterKeyHint="done" autoCapitalize="sentences"
+              placeholder={isBill ? "Ex.: Condomínio" : "Ex.: Salário"} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className={isBill ? "" : "col-span-2"}>
-              <Label htmlFor="tx-amount">Valor (R$)</Label>
-              <Input id="tx-amount" inputMode="decimal" value={f.amount} onChange={set("amount")} placeholder="0,00" />
-            </div>
-            {isBill && (
-              <div>
-                <Label htmlFor="tx-day">Dia do vencimento</Label>
-                <Input id="tx-day" type="number" min="1" max="31" value={f.dueDay} onChange={set("dueDay")} />
+          {isBill && (
+            <div>
+              <Label htmlFor="tx-day">Dia do vencimento</Label>
+              <div className="flex gap-1.5">
+                {[1, 5, 10, 15, 20, 25].map((d) => (
+                  <button key={d} type="button" aria-pressed={+f.dueDay === d} onClick={() => setF((p) => ({ ...p, dueDay: d }))}
+                    className={cn("h-10 flex-1 rounded-md border text-sm font-semibold tabular-nums transition-colors",
+                      +f.dueDay === d ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted")}>
+                    {String(d).padStart(2, "0")}
+                  </button>
+                ))}
+                <Input id="tx-day" type="number" inputMode="numeric" min="1" max="31" value={f.dueDay} onChange={set("dueDay")}
+                  aria-label="Outro dia" className="w-16 shrink-0 text-center" />
               </div>
-            )}
-          </div>
+            </div>
+          )}
           {isBill && (
             <div>
               <Label>Categoria</Label>
@@ -199,14 +211,14 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2 pt-1">
+          <DialogFooter>
             {editing && (
               <Button type="button" variant="destructive" onClick={() => { onDelete(editing.kind, editing.item.id); onOpenChange(false); }}>
                 <Trash2 className="h-4 w-4" />Excluir
               </Button>
             )}
-            <Button type="submit" disabled={!valid} className="ml-auto min-w-28">Salvar</Button>
-          </div>
+            <Button type="submit" disabled={!valid} className="ml-auto min-w-28 flex-1 sm:flex-none">Salvar</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

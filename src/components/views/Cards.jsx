@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Lock, Pencil, Plus, Users } from "lucide-react";
+import { Check, FileUp, Lock, Pencil, Plus, Users } from "lucide-react";
 import { Card, CardHint, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,7 +86,10 @@ export function Cards({ wallet, categories, month, actions, solo }) {
         <div>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Lançamentos</p>
-            <Button variant="ghost" size="sm" onClick={() => actions.add("personal", { payWith: current.id, dueDay: current.dueDay })}><Plus className="h-3.5 w-3.5" />Lançar compra</Button>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" onClick={() => actions.importFile(current.id)}><FileUp className="h-3.5 w-3.5" />Importar fatura</Button>
+              <Button variant="ghost" size="sm" onClick={() => actions.add("personal", { payWith: current.id, dueDay: current.dueDay })}><Plus className="h-3.5 w-3.5" />Lançar</Button>
+            </div>
           </div>
           <ul className="mt-1 divide-y">
             {current.items.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">Nenhuma compra neste cartão neste mês.</li>}
@@ -99,7 +102,7 @@ export function Cards({ wallet, categories, month, actions, solo }) {
                     <span className="min-w-0 flex-1">
                       <span className={cn("block truncate text-sm font-medium", a.paid && "text-muted-foreground line-through")}>{a.name}</span>
                       <span className="text-[11px] text-muted-foreground">
-                        {cat.name}{a.installment ? ` · parcela ${a.installment.current}/${a.installment.total}` : ""}{!solo && a.type === "shared" ? ` · casa, total ${money(a.amount)}` : ""}
+                        {a.date ? `${a.date.slice(8, 10)}/${a.date.slice(5, 7)} · ` : ""}{cat.name}{a.reconciled ? " · conferida" : ""}{a.installment ? ` · parcela ${a.installment.current}/${a.installment.total}` : ""}{!solo && a.type === "shared" ? ` · casa, total ${money(a.amount)}` : ""}
                       </span>
                     </span>
                     <span className="whitespace-nowrap text-sm font-semibold">{money(a.myShare)}</span>

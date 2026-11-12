@@ -52,6 +52,22 @@ navegador — privacidade real exige um backend com contas separadas.
 - **Patrimônio**: casa, carro, investimentos; patrimônio líquido descontando financiamentos.
 - **Lançar em vários meses**: no formulário, "Todo mês" ou "Parcelado", começando no mês que você escolher.
 
+## Importar fatura ou extrato
+
+Botão **Importar** (cabeçalho, ou "Importar fatura" na Carteira). Lê CSV e OFX (`src/lib/importer.js`):
+
+- **Layout:** os bancos não documentam o formato e mudam sem aviso, então nada depende de layout fixo. Separador,
+  formato de número e de data são detectados; as colunas são achadas pelo nome (data, descrição, valor, parcela, categoria).
+  Se não reconhecer, a tela pede para você apontar qual coluna é qual. OFX é padrão e é a opção mais confiável.
+- **Nome limpo:** tira o prefixo de maquininha (`PAG*`, `MP *`, `SumUp *`, `EC *`, `IFD*`…), cidade, UF e códigos, e
+  reconhece marcas comuns (iFood, Uber, Netflix, Mercado Livre, postos, farmácias…). Você corrige na revisão e o app
+  lembra para os próximos meses (regras pessoais, em `profile.rules`).
+- **Categoria:** pelas palavras do nome e pela categoria que o banco manda, com a regra que você salvou na frente.
+- **Casamento:** o que você já lançou (mesmo cartão, mesmo valor; nome e dia desempatam) é **conferido** com o valor
+  do banco, sem duplicar. O que você lançou e não veio no arquivo aparece num aviso. Pagamento de fatura e estorno
+  são ignorados.
+- **Parcelas:** "Parcela 2/5" na fatura cria as 3 que faltam nos meses seguintes.
+
 Onde cada coisa fica salva: categorias em `duofinn:shared:settings` (os dois veem); carteira, metas e patrimônio em
 `duofinn:personal:<pessoa>:profile` (só o dono). Uma conta da casa paga com cartão leva um retrato do cartão (nome, cor,
 final) para o parceiro ver sem ler a sua carteira.

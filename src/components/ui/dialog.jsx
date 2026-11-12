@@ -24,6 +24,8 @@ export const DialogContent = React.forwardRef(({ className, children, ...props }
       )}
       {...props}
     >
+      {/* alça da folha inferior no celular: diz que dá para arrastar/fechar */}
+      <span aria-hidden className="mx-auto -mt-2 mb-3 block h-1 w-10 rounded-full bg-border sm:hidden" />
       {children}
       <DialogPrimitive.Close
         className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-muted"
@@ -35,3 +37,9 @@ export const DialogContent = React.forwardRef(({ className, children, ...props }
   </DialogPrimitive.Portal>
 ));
 DialogContent.displayName = "DialogContent";
+
+// Rodapé que fica preso embaixo enquanto o conteúdo rola: o botão principal
+// sempre ao alcance do polegar, mesmo em formulário comprido no celular.
+export const DialogFooter = ({ className, ...props }) => (
+  <div className={cn("sticky -bottom-5 z-10 -mx-5 mt-2 flex items-center gap-2 border-t bg-card px-5 pb-1 pt-3", className)} {...props} />
+);

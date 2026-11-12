@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { MoneyInput } from "@/components/MoneyInput";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Emoji } from "@/components/Emoji";
@@ -25,14 +26,14 @@ function Shell({ open, onOpenChange, title, hint, onSubmit, valid, onDelete, del
         {hint && <DialogDescription className="mt-1">{hint}</DialogDescription>}
         <form className="mt-4 space-y-4" onSubmit={(e) => { e.preventDefault(); if (valid) { onSubmit(); onOpenChange(false); } }}>
           {children}
-          <div className="flex items-center gap-2 pt-1">
+          <DialogFooter>
             {onDelete && (
               <Button type="button" variant="destructive" onClick={() => { onDelete(); onOpenChange(false); }}>
                 <Trash2 className="h-4 w-4" />{deleteLabel}
               </Button>
             )}
-            <Button type="submit" disabled={!valid} className="ml-auto min-w-28">{submitLabel}</Button>
-          </div>
+            <Button type="submit" disabled={!valid} className="ml-auto min-w-28 flex-1 sm:flex-none">{submitLabel}</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
@@ -120,7 +121,7 @@ export function CardDialog({ open, onOpenChange, editing, month, onSave, onDelet
         </div>
         <div>
           <Label htmlFor="card-limit">Limite (R$)</Label>
-          <Input id="card-limit" inputMode="decimal" value={f.limit} onChange={set("limit")} placeholder="0,00" />
+          <MoneyInput size="sm" id="card-limit" value={f.limit} onChange={(v) => setF((p) => ({ ...p, limit: v }))} />
         </div>
         <div>
           <Label htmlFor="card-due">Vence dia</Label>
@@ -180,11 +181,11 @@ export function GoalDialog({ open, onOpenChange, editing, monthlySpend, onSave, 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="goal-target">Quanto quer juntar (R$)</Label>
-          <Input id="goal-target" inputMode="decimal" value={f.target} onChange={set("target")} placeholder="0,00" />
+          <MoneyInput size="sm" id="goal-target" value={f.target} onChange={(v) => setF((p) => ({ ...p, target: v }))} />
         </div>
         <div>
           <Label htmlFor="goal-saved">Já guardado (R$)</Label>
-          <Input id="goal-saved" inputMode="decimal" value={f.saved} onChange={set("saved")} placeholder="0,00" />
+          <MoneyInput size="sm" id="goal-saved" value={f.saved} onChange={(v) => setF((p) => ({ ...p, saved: v }))} />
         </div>
       </div>
       {f.kind === "emergencia" && suggestion > 0 && (
@@ -220,7 +221,7 @@ export function DepositDialog({ open, onOpenChange, goal, suggested, onSave }) {
       </div>
       <div>
         <Label htmlFor="dep-amount">Valor (R$)</Label>
-        <Input id="dep-amount" inputMode="decimal" value={f.amount} onChange={set("amount")} placeholder="0,00" autoFocus />
+        <MoneyInput id="dep-amount" autoFocus value={f.amount} onChange={(v) => setF((p) => ({ ...p, amount: v }))} />
       </div>
       {!f.withdraw && (
         <label className="flex items-start gap-2 text-sm">
@@ -254,11 +255,11 @@ export function AssetDialog({ open, onOpenChange, editing, onSave, onDelete }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="asset-value">Quanto vale hoje (R$)</Label>
-          <Input id="asset-value" inputMode="decimal" value={f.value} onChange={set("value")} placeholder="0,00" />
+          <MoneyInput size="sm" id="asset-value" value={f.value} onChange={(v) => setF((p) => ({ ...p, value: v }))} />
         </div>
         <div>
           <Label htmlFor="asset-debt">Ainda deve (R$)</Label>
-          <Input id="asset-debt" inputMode="decimal" value={f.debt} onChange={set("debt")} placeholder="Financiamento, se tiver" />
+          <MoneyInput size="sm" id="asset-debt" value={f.debt} onChange={(v) => setF((p) => ({ ...p, debt: v }))} />
         </div>
       </div>
       <EmojiField id="asset-emoji" value={f.emoji} onChange={set("emoji")} />
