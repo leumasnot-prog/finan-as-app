@@ -153,6 +153,30 @@ export const StorageManager = {
     return backend.set(personalKey(user, month), stamp(mine), false);
   },
 
+  // Todos os documentos que este aparelho tem (para o backup).
+  async exportDocs() {
+    if (hasClaudeStorage()) {
+      const out = [];
+      for (const shared of [true, false]) {
+        try {
+          const res = await window.storage.list?.("duofinn:", shared);
+          for (const key of res?.keys ?? []) {
+            const value = await backend.get(key, shared);
+            if (value) out.push({ key, value });
+          }
+        } catch { /* sem listagem: exporta o que der */ }
+      }
+      return out;
+    }
+    return Object.keys(localStorage)
+      .filter((k) => /^(shared|private)::duofinn:/.test(k))
+      .map((k) => ({ key: k.replace(/^(shared|private)::/, ""), value: JSON.parse(localStorage.getItem(k)) }));
+  },
+  // Grava os documentos de um backup já validado (readBackup), cada um no seu escopo.
+  async importDocs(docs) {
+    for (const d of docs) await backend.set(d.key, d.value, d.shared);
+  },
+
   async reset(month) {
     await Promise.all([
       backend.remove(SETTINGS_KEY, true),

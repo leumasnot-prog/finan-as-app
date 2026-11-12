@@ -48,3 +48,54 @@ writeFileSync(join(outDir, "lancamentos.csv"), "﻿" + [head.join(";"), ...all.m
 writeFileSync(join(outDir, "resumo.json"), JSON.stringify(summary, null, 2));
 writeFileSync(join(outDir, "nao-lidos.txt"), failed.join("\n\n") || "Todos os arquivos foram lidos.\n");
 console.log(`${summary.filter((s) => s.lido).length}/${summary.length} arquivos lidos · ${all.filter((x) => x.include).length} lançamentos · ${failed.length} sem layout reconhecido`);
+
+// ── arquivo de dados do app (--app no regras.json: "app": { ... }) ──────────
+// Gera duofinn-dados.json para "Ajustes → Dados → Importar dados" no app.
+// regras.json:
+//   "app": {
+//     "name": "Seu nome",
+//     "cards": [{ "id": "nubank", "name": "Nubank", "theme": "purple", "last4": "0000", "dueDay": 5, "file": "Nubank_" }],
+//   }
+// Arquivo cujo nome contém `file` é a fatura daquele cartão: tudo entra no mês
+// da fatura (o AAAA-MM do nome do arquivo). Extrato de conta entra no mês da data.
+// Regra com "cardId" põe o lançamento naquele cartão (ex.: pagamento da fatura Inter).
+if (personal.app) {
+  const { makeBackup } = await import("../src/lib/backup.js");
+  const app = personal.app;
+  const user = "pessoa1";
+  const cards = app.cards ?? [];
+  const snap = (c) => c && { name: c.name, theme: c.theme, color: c.color, last4: c.last4, limit: c.limit ?? 0 };
+  const months = new Map();
+  let n = 0;
+  for (const x of all.filter((r) => r.include)) {
+    const fileCard = cards.find((c) => c.file && x.arquivo.includes(c.file));
+    const ruleCard = (personal.rules ?? []).find((r) => r.cardId && r.contains && x.raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(r.contains));
+    const card = cards.find((c) => c.id === ruleCard?.cardId) ?? fileCard;
+    const month = fileCard ? /(\d{4}-\d{2})-\d{2}/.exec(x.arquivo)?.[1] ?? x.date.slice(0, 7) : x.date.slice(0, 7);
+    const item = {
+      id: `imp-${month}-${++n}`, name: x.name, amount: x.amount, type: "personal", owner: user,
+      dueDay: fileCard ? fileCard.dueDay ?? 5 : +x.date.slice(8, 10), category: x.category, paid: true,
+      imported: true, raw: x.raw, date: x.date,
+      ...(card ? { cardId: card.id, card: snap(card) } : {}),
+      ...(x.installment ? { installment: x.installment } : {}),
+    };
+    if (!months.has(month)) months.set(month, []);
+    months.get(month).push(item);
+  }
+  const users = { pessoa1: { name: app.name ?? "Você", initial: (app.name ?? "V")[0].toUpperCase() }, pessoa2: { name: "Pessoa 2", initial: "2" } };
+  const last = [...months.keys()].sort().at(-1);
+  const docs = [
+    { key: "duofinn:session", value: { currentUser: user, month: last, theme: "light", mode: "solo", schemaVersion: 1 } },
+    { key: "duofinn:shared:settings", value: { categories, schemaVersion: 1 } },
+    { key: `duofinn:personal:${user}:profile`, value: {
+      cards: cards.map(({ file, ...c }) => c), goals: [], assets: [], schemaVersion: 1,
+      rules: (personal.rules ?? []).filter((r) => r.contains && !r.include).map((r) => ({ key: r.contains, contains: r.contains, name: r.name, category: r.category })),
+    } },
+    ...[...months.entries()].flatMap(([m, accounts]) => [
+      { key: `duofinn:shared:${m}`, value: { month: m, users, accounts: [], schemaVersion: 1 } },
+      { key: `duofinn:personal:${user}:${m}`, value: { owner: user, incomes: [], accounts, schemaVersion: 1 } },
+    ]),
+  ];
+  writeFileSync(join(outDir, "duofinn-dados.json"), JSON.stringify(makeBackup(user, docs), null, 1));
+  console.log(`duofinn-dados.json: ${months.size} meses, ${n} lançamentos`);
+}

@@ -18,6 +18,7 @@ import { byCategory, calculateBalances, cashFlowSeries, visibleAccounts } from "
 import { monthLabel, shiftMonth } from "@/lib/seed";
 import { uid } from "@/lib/utils";
 import { cleanName } from "@/lib/importer";
+import { makeBackup } from "@/lib/backup";
 
 export default function App() {
   const [session, setSession] = useState(null); // { currentUser, month, theme }
@@ -209,8 +210,25 @@ export default function App() {
     removeAsset: (id) => patchProfile((p) => ({ ...p, assets: (p.assets ?? []).filter((a) => a.id !== id) })),
     toggleSettled: () => patchShared((s) => ({ ...s, settled: !s.settled })),
     rename: (u, name) => patchShared((s) => ({ ...s, users: { ...s.users, [u]: { ...s.users[u], name } } })),
+    exportData: async () => {
+      const docs = (await StorageManager.exportDocs()).filter((d) => !d.key.includes(":personal:") || d.key.includes(`:personal:${user}:`) || d.key === "duofinn:session");
+      const blob = new Blob([JSON.stringify(makeBackup(user, docs), null, 1)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `duofinn-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setNotice("Backup exportado.");
+    },
+    importData: async ({ docs, summary }) => {
+      await StorageManager.importDocs(docs.filter((d) => d.kind !== "session"));
+      const s = docs.find((d) => d.kind === "session")?.value;
+      if (s) setSession((cur) => ({ ...cur, ...s, theme: cur.theme }));
+      if (!s || (s.month === month && s.currentUser === user)) await load();
+      setTab("inicio");
+      setNotice(`${summary.entries} lançamentos importados.`);
+    },
     reset: async () => {
-      if (!window.confirm("Restaurar os dados de exemplo deste mês? Isso apaga as contas da casa e as pessoais dos dois.")) return;
       await StorageManager.reset(month);
       await load();
     },

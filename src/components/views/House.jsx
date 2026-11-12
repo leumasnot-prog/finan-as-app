@@ -6,6 +6,7 @@ import { PrivacyCard, SplitCard } from "@/components/OverviewCards";
 import { Avatar } from "@/components/Avatar";
 import { USERS } from "@/lib/seed";
 import { ModeSwitch } from "@/components/Nav";
+import { DataCard } from "@/components/DataCard";
 
 export function House({ b, shared, me, actions, storageLabel, onOpenDs, solo, onMode }) {
   const modeCard = (
@@ -20,14 +21,7 @@ export function House({ b, shared, me, actions, storageLabel, onOpenDs, solo, on
     </Card>
   );
   const dataCard = (
-    <Card>
-      <CardTitle>Dados</CardTitle>
-      <CardHint className="mt-2">{storageLabel}</CardHint>
-      <Button variant="outline" size="sm" className="mt-3" onClick={actions.reset}>
-        <RotateCcw className="h-3 w-3" />Restaurar exemplo do mês
-      </Button>
-      <Button variant="ghost" size="sm" className="mt-3 lg:hidden" onClick={onOpenDs}>Design system</Button>
-    </Card>
+    <DataCard storageLabel={storageLabel} onExport={actions.exportData} onImport={actions.importData} onReset={actions.reset} onOpenDs={onOpenDs} />
   );
   if (solo)
     return (
