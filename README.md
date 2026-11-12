@@ -43,6 +43,19 @@ Pix dependem só do documento compartilhado, então os dois chegam ao mesmo núm
 dele. No `localStorage` o seletor "Ver como" apenas simula as duas pessoas no mesmo
 navegador — privacidade real exige um backend com contas separadas.
 
+## Telas
+
+- **Visão geral**: saldo, divisão da casa, carteira, contas a pagar com filtro por dia (toque em dois dias para ver a faixa, ex.: 05 a 15).
+- **Fluxo**: saldo ao longo do mês e gastos por categoria em pizza. Categorias com emoji 3D, criadas pelos dois.
+- **Carteira**: seus cartões empilhados, cada um com nome, cor e fatura do mês; lance compras direto num cartão.
+- **Metas**: guardar dinheiro, investimento, reserva de emergência, viagem; quanto guardar por mês até o prazo.
+- **Patrimônio**: casa, carro, investimentos; patrimônio líquido descontando financiamentos.
+- **Lançar em vários meses**: no formulário, "Todo mês" ou "Parcelado", começando no mês que você escolher.
+
+Onde cada coisa fica salva: categorias em `duofinn:shared:settings` (os dois veem); carteira, metas e patrimônio em
+`duofinn:personal:<pessoa>:profile` (só o dono). Uma conta da casa paga com cartão leva um retrato do cartão (nome, cor,
+final) para o parceiro ver sem ler a sua carteira.
+
 Design system: [`docs/design-system.md`](docs/design-system.md) e, no app, **Sistema → Design system**.
 
 Próximos passos (grafo de tarefas para agentes): [`docs/proximos-passos.md`](docs/proximos-passos.md).

@@ -11,7 +11,8 @@
 
 export const SCHEMA_VERSION = 1;
 
-export const KINDS = ["shared", "personal", "session"];
+// settings: compartilhado sem mês (categorias). profile: pessoal sem mês (carteira, metas, patrimônio).
+export const KINDS = ["shared", "personal", "session", "settings", "profile"];
 
 // MIGRATIONS[n][kind](doc) → doc na versão n + 1 (sem o carimbo de versão,
 // que é aplicado por `migrate`). Tipo ausente = formato não mudou.

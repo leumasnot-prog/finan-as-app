@@ -43,6 +43,42 @@ export const initialData = {
   ],
 };
 
+// Categorias padrão, com emoji. O usuário cria as dele (documento "settings", compartilhado).
+export const DEFAULT_CATEGORIES = [
+  { id: "moradia", name: "Moradia", emoji: "🏠" },
+  { id: "reserva", name: "Reserva", emoji: "🐷" },
+  { id: "cartao", name: "Cartão", emoji: "💳" },
+  { id: "alimentacao", name: "Alimentação", emoji: "🛒" },
+  { id: "transporte", name: "Transporte", emoji: "🚗" },
+  { id: "contas", name: "Contas fixas", emoji: "💡" },
+  { id: "lazer", name: "Lazer", emoji: "🎬" },
+  { id: "saude", name: "Saúde", emoji: "💊" },
+  { id: "outros", name: "Outros", emoji: "🧾" },
+];
+
+// Exemplo do documento "profile" (pessoal, sem mês): metas e patrimônio.
+// A carteira começa vazia; os cartões das contas do mês aparecem nela sozinhos.
+export const SEED_PROFILE = {
+  pessoa1: {
+    cards: [],
+    goals: [
+      { id: "g-emerg", name: "Reserva de emergência", emoji: "🛡️", kind: "emergencia", target: 60000, saved: 31500, deadline: "2027-12" },
+      { id: "g-japao", name: "Viagem ao Japão", emoji: "✈️", kind: "viagem", target: 25000, saved: 8200, deadline: "2027-10" },
+      { id: "g-tesouro", name: "Tesouro IPCA+", emoji: "📈", kind: "investimento", target: 50000, saved: 12000, deadline: "2028-06" },
+    ],
+    assets: [
+      { id: "a-ap", name: "Apartamento", emoji: "🏢", kind: "imovel", value: 620000, debt: 410000 },
+      { id: "a-carro", name: "Carro", emoji: "🚗", kind: "veiculo", value: 78000, debt: 0 },
+      { id: "a-cdb", name: "CDB e Tesouro", emoji: "🏦", kind: "investimento", value: 43500, debt: 0 },
+    ],
+  },
+  pessoa2: {
+    cards: [],
+    goals: [{ id: "g-praia", name: "Férias na praia", emoji: "🏖️", kind: "viagem", target: 9000, saved: 3100, deadline: "2027-07" }],
+    assets: [{ id: "a-moto", name: "Moto", emoji: "🏍️", kind: "veiculo", value: 21000, debt: 6500 }],
+  },
+};
+
 export const CATEGORIES = {
   moradia: "Moradia",
   reserva: "Reserva",
@@ -51,6 +87,7 @@ export const CATEGORIES = {
   transporte: "Transporte",
   contas: "Contas fixas",
   lazer: "Lazer",
+  saude: "Saúde",
   outros: "Outros",
 };
 

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Lock, Trash2, Users, Wallet } from "lucide-react";
+import { Lock, Plus, Trash2, Users, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { CARD_THEMES } from "@/components/CreditCardVisual";
-import { CATEGORIES } from "@/lib/seed";
-import { cn, uid } from "@/lib/utils";
+import { Emoji } from "@/components/Emoji";
+import { cardIdOf, spreadMonths } from "@/lib/planning";
+import { monthLabel } from "@/lib/seed";
+import { cn, money, uid } from "@/lib/utils";
 import { splitLabel } from "@/lib/finance";
 
 const KINDS = [
@@ -15,37 +16,48 @@ const KINDS = [
 ];
 const SPLITS = ["50/50", "60/40", "40/60", "70/30", "30/70", "100/0", "0/100"];
 
-const blank = (kind, me) => ({
-  kind, name: "", amount: "", dueDay: 10, category: kind === "shared" ? "moradia" : "outros",
-  split: "50/50", paidBy: me, limit: "", theme: "graphite",
+const blank = (kind, me, month, preset = {}) => ({
+  kind, name: "", amount: "", dueDay: 10, category: kind === "shared" ? "moradia" : preset.payWith ? "alimentacao" : "outros",
+  split: "50/50", paidBy: me, payWith: "", repeat: "once", times: 3, start: month, ...preset,
 });
+const REPEAT = [
+  ["once", "Só uma vez"],
+  ["repeat", "Todo mês"],
+  ["installments", "Parcelado"],
+];
+const shortMonth = (ym) => { const l = monthLabel(ym); return `${l.name.slice(0, 3).toLowerCase()}/${String(l.year).slice(2)}`; };
 
 // editing: { kind, item } | null
-export function AddTransactionModal({ open, onOpenChange, editing, defaultKind = "shared", me, users, solo, onSave, onDelete }) {
-  const [f, setF] = useState(blank(defaultKind, me));
+// onSave(kind, item, spread) — spread = [{ month, item }] quando a conta vai para vários meses.
+export function AddTransactionModal({ open, onOpenChange, editing, defaultKind = "shared", preset, me, users, solo, month, categories = [], wallet = [], onNewCategory, onSave, onDelete }) {
+  const [f, setF] = useState(blank(defaultKind, me, month));
   useEffect(() => {
     if (!open) return;
     if (editing) {
       const it = editing.item;
       setF({
-        ...blank(editing.kind, me), ...it, kind: editing.kind,
-        amount: String(it.amount).replace(".", ","), paidBy: it.paidBy ?? "each",
-        limit: it.card?.limit ?? "", theme: it.card?.theme ?? "graphite",
+        ...blank(editing.kind, me, month), ...it, kind: editing.kind,
+        amount: String(it.amount).replace(".", ","), paidBy: it.paidBy ?? "each", payWith: cardIdOf(it) ?? "",
       });
-    } else setF(blank(defaultKind, me));
-  }, [open, editing, defaultKind, me]);
+    } else setF(blank(defaultKind, me, month, preset));
+  }, [open, editing, defaultKind, me, month, preset]);
 
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const amount = parseFloat(String(f.amount).replace(/\./g, "").replace(",", "."));
   const valid = f.name.trim() && amount > 0;
   const isBill = f.kind !== "income";
 
+  const times = Math.max(2, Math.min(60, parseInt(f.times, 10) || 2));
+  const spread = !editing && f.repeat !== "once" ? spreadMonths({ id: "x", amount: amount || 0 }, f.start || month, f.repeat, times) : null;
+
   function submit(e) {
     e.preventDefault();
     if (!valid) return;
     const id = editing?.item.id ?? uid();
+    const many = (item) => (editing ? null : spreadMonths(item, f.start || month, f.repeat, f.repeat === "once" ? 1 : times));
     if (f.kind === "income") {
-      onSave("income", { id, name: f.name.trim(), amount, owner: me, type: "personal" });
+      const item = { id, name: f.name.trim(), amount, owner: me, type: "personal" };
+      onSave("income", item, many(item));
     } else {
       const item = {
         id, name: f.name.trim(), amount, type: f.kind,
@@ -57,13 +69,17 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
         item.split = f.split;
         item.paidBy = f.paidBy === "each" ? null : f.paidBy;
       }
-      if (f.category === "cartao") {
-        item.card = {
-          ...(editing?.item.card ?? { last4: String(Math.floor(1000 + Math.random() * 9000)), tier: "Card" }),
-          limit: parseFloat(f.limit) || 0, theme: f.theme,
-        };
+      // Pago com cartão da carteira: guarda o id e um retrato do cartão, para
+      // o parceiro ver nome e cor numa conta da casa sem ler a sua carteira.
+      if (f.payWith && f.payWith === id && editing?.item.card) item.card = editing.item.card;
+      else if (f.payWith) {
+        const c = wallet.find((w) => w.id === f.payWith);
+        item.cardId = f.payWith;
+        if (c) item.card = { name: c.name, theme: c.theme, color: c.color, last4: c.last4, limit: c.limit };
       }
-      onSave(f.kind, item);
+      if (editing?.item.installment) item.installment = editing.item.installment;
+      if (editing?.item.recurring) item.recurring = true;
+      onSave(f.kind, item, many(item));
     }
     onOpenChange(false);
   }
@@ -109,24 +125,60 @@ export function AddTransactionModal({ open, onOpenChange, editing, defaultKind =
           </div>
           {isBill && (
             <div>
-              <Label htmlFor="tx-cat">Categoria</Label>
-              <Select id="tx-cat" value={f.category} onChange={set("category")}>
-                {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <Label>Categoria</Label>
+              <div className="flex max-h-[104px] flex-wrap gap-1.5 overflow-y-auto" role="radiogroup" aria-label="Categoria">
+                {categories.map((c) => (
+                  <button key={c.id} type="button" role="radio" aria-checked={f.category === c.id} onClick={() => setF((p) => ({ ...p, category: c.id }))}
+                    className={cn("flex items-center gap-1 rounded-full border py-0.5 pl-1 pr-2.5 text-xs font-semibold transition-colors",
+                      f.category === c.id ? "border-primary bg-tint text-tint-foreground" : "bg-card hover:bg-muted")}>
+                    <Emoji char={c.emoji} size={20} />{c.name}
+                  </button>
+                ))}
+                {onNewCategory && (
+                  <button type="button" onClick={onNewCategory} className="flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted">
+                    <Plus className="h-3 w-3" />Nova
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          {isBill && (wallet.length > 0 || f.payWith) && (
+            <div>
+              <Label htmlFor="tx-card">Pagar com</Label>
+              <Select id="tx-card" value={f.payWith} onChange={set("payWith")}>
+                <option value="">Boleto, Pix ou débito</option>
+                {wallet.map((c) => <option key={c.id} value={c.id}>Cartão {c.name} · final {c.last4}</option>)}
               </Select>
             </div>
           )}
-          {isBill && f.category === "cartao" && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="tx-limit">Limite (R$)</Label>
-                <Input id="tx-limit" type="number" min="0" value={f.limit} onChange={set("limit")} placeholder="Opcional" />
+          {!editing && (
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1" role="radiogroup" aria-label="Repetir">
+                {REPEAT.map(([k, l]) => (
+                  <button key={k} type="button" role="radio" aria-checked={f.repeat === k} onClick={() => setF((p) => ({ ...p, repeat: k }))}
+                    className={cn("rounded px-1 py-1.5 text-xs font-semibold", f.repeat === k ? "bg-card shadow-sm" : "text-muted-foreground")}>{l}</button>
+                ))}
               </div>
-              <div>
-                <Label htmlFor="tx-theme">Cor do cartão</Label>
-                <Select id="tx-theme" value={f.theme} onChange={set("theme")}>
-                  {CARD_THEMES.map((t) => <option key={t} value={t}>{{ graphite: "Grafite", blue: "Azul", orange: "Laranja", sand: "Areia" }[t]}</option>)}
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="tx-start">{f.repeat === "once" ? "Mês" : "Começa em"}</Label>
+                  <Input id="tx-start" type="month" value={f.start} onChange={set("start")} />
+                </div>
+                {f.repeat !== "once" && (
+                  <div>
+                    <Label htmlFor="tx-times">{f.repeat === "installments" ? "Parcelas" : "Por quantos meses"}</Label>
+                    <Input id="tx-times" type="number" min="2" max="60" value={f.times} onChange={set("times")} />
+                  </div>
+                )}
               </div>
+              {spread && amount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {f.repeat === "installments"
+                    ? <>{times}× de <strong className="text-foreground">{money(spread[0].item.amount)}</strong></>
+                    : <><strong className="text-foreground">{money(amount)}</strong> por mês</>}
+                  {" "}de {shortMonth(spread[0].month)} a {shortMonth(spread[spread.length - 1].month)}.
+                </p>
+              )}
             </div>
           )}
           {f.kind === "shared" && (

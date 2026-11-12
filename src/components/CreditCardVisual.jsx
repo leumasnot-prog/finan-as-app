@@ -18,7 +18,50 @@ const THEMES = {
     bg: "linear-gradient(135deg,#ece7dd 0%,#d9d2c3 100%)",
     text: "text-neutral-900",
   },
+  purple: {
+    bg: "linear-gradient(135deg,#9b4dff 0%,#7a1fe0 55%,#5b12b0 100%)",
+    text: "text-white",
+  },
+  green: {
+    bg: "linear-gradient(135deg,#1fb877 0%,#0f8f5a 60%,#0a6b44 100%)",
+    text: "text-white",
+  },
+  pink: {
+    bg: "linear-gradient(135deg,#ff6fa5 0%,#e83e7d 60%,#c22462 100%)",
+    text: "text-white",
+  },
+  red: {
+    bg: "linear-gradient(135deg,#f0483e 0%,#cf2a22 60%,#a51a14 100%)",
+    text: "text-white",
+  },
+  teal: {
+    bg: "linear-gradient(135deg,#21b8c4 0%,#0e8f9b 60%,#0a6d76 100%)",
+    text: "text-white",
+  },
+  gold: {
+    bg: "linear-gradient(135deg,#e9c46a 0%,#c99a2e 60%,#a67c1f 100%)",
+    text: "text-neutral-900",
+  },
 };
+export const CARD_THEME_NAMES = {
+  graphite: "Grafite", blue: "Azul", purple: "Roxo", pink: "Rosa", red: "Vermelho",
+  orange: "Laranja", gold: "Dourado", green: "Verde", teal: "Turquesa", sand: "Areia",
+};
+export const cardBackground = (theme) => (THEMES[theme] || THEMES.graphite).bg;
+
+// Cor livre escolhida pelo usuário: o gradiente sai da própria cor, clareando
+// no canto e escurecendo na ponta. Texto escuro se a cor for clara.
+function customTheme(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255];
+  const light = 0.299 * r + 0.587 * g + 0.114 * b > 170;
+  return {
+    bg: `linear-gradient(135deg, color-mix(in srgb, ${hex} 78%, #fff) 0%, ${hex} 55%, color-mix(in srgb, ${hex} 70%, #000) 100%)`,
+    text: light ? "text-neutral-900" : "text-white",
+  };
+}
+const themeOf = (card) =>
+  /^#[0-9a-f]{6}$/i.test(card.color ?? "") ? customTheme(card.color) : THEMES[card.theme] || THEMES.graphite;
 export const CARD_THEMES = Object.keys(THEMES);
 
 const Chip = () => (
@@ -28,9 +71,18 @@ const Chip = () => (
   </svg>
 );
 
-export function CreditCardVisual({ account, month, className }) {
+// Aceita uma conta antiga (`account`, com `card` embutido) ou um cartão da
+// carteira (`wallet`, de walletCards: nome, cor, fatura do mês).
+export function CreditCardVisual({ account, wallet, month, className, style }) {
+  if (wallet) {
+    account = {
+      name: wallet.name, type: wallet.shared ? "shared" : "personal", paid: wallet.paid,
+      dueDay: wallet.dueDay, amount: wallet.invoice,
+      card: { theme: wallet.theme, color: wallet.color, last4: wallet.last4, limit: wallet.limit, tier: wallet.tier || wallet.brand },
+    };
+  }
   const card = account.card || {};
-  const theme = THEMES[card.theme] || THEMES.graphite;
+  const theme = themeOf(card);
   const free = Math.max(0, (card.limit || 0) - account.amount);
   const [, mm] = month.split("-");
   return (
@@ -40,7 +92,7 @@ export function CreditCardVisual({ account, month, className }) {
         theme.text,
         className
       )}
-      style={{ background: theme.bg }}
+      style={{ background: theme.bg, ...style }}
     >
       {/* textura escovada + brilho */}
       <div
@@ -59,7 +111,7 @@ export function CreditCardVisual({ account, month, className }) {
           </p>
         </div>
         <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
-          {account.paid ? "Paga" : "Aberta"}
+          {account.amount === 0 ? "Sem fatura" : account.paid ? "Paga" : "Aberta"}
         </span>
       </div>
       <div className="relative flex items-center justify-between">

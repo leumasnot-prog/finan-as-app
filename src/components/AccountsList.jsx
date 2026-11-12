@@ -3,43 +3,51 @@ import { Check, Lock, Users } from "lucide-react";
 import { Card, CardHint, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/Money";
 import { cn, money } from "@/lib/utils";
-import { CATEGORIES } from "@/lib/seed";
+import { Emoji } from "@/components/Emoji";
+import { categoryOf, inDays, pickDay } from "@/lib/planning";
 
 // Recebe apenas contas já filtradas por privacidade (visibleAccounts).
-export function AccountsList({ accounts, onTogglePaid, onEdit, className, solo }) {
-  const [day, setDay] = useState(null);
-  const pending = accounts.filter((a) => !a.paid);
+// Filtro por dia: um toque mostra o dia; um segundo toque em outro dia mostra
+// a faixa entre os dois (ex.: 05 → 15). O total acompanha o filtro.
+export function AccountsList({ accounts, categories = [], onTogglePaid, onEdit, className, solo }) {
+  const [sel, setSel] = useState(null);
   const days = [...new Set(accounts.map((a) => a.dueDay))].sort((a, b) => a - b);
-  const active = days.includes(day) ? day : null;
-  const list = active ? accounts.filter((a) => a.dueDay === active) : accounts;
+  const active = sel && days.some((d) => d >= sel.from && d <= sel.to) ? sel : null;
+  const list = accounts.filter((a) => inDays(a, active));
+  const pending = list.filter((a) => !a.paid);
   const totalPending = pending.reduce((s, a) => s + a.myShare, 0);
+  const dd = (d) => String(d).padStart(2, "0");
+  const range = active && (active.from === active.to ? `dia ${dd(active.from)}` : `dia ${dd(active.from)} a ${dd(active.to)}`);
 
   return (
     <Card className={className}>
       <div className="flex items-baseline gap-2">
         <CardTitle>Contas a pagar</CardTitle>
-        <CardHint>{active ? `• dia ${String(active).padStart(2, "0")}` : solo ? "• no mês" : "• sua parte"}</CardHint>
+        <CardHint>{range ? `• ${range}` : solo ? "• no mês" : "• sua parte"}</CardHint>
+        {active && <button type="button" onClick={() => setSel(null)} className="ml-auto text-xs font-semibold text-tint-foreground hover:underline">Ver mês todo</button>}
       </div>
       <Money value={totalPending} size="md" className="mt-4 block" />
       <CardHint className="mt-2">
-        <strong className="text-foreground">{accounts.length - pending.length} de {accounts.length}</strong> pagas
+        <strong className="text-foreground">{list.length - pending.length} de {list.length}</strong> pagas{active ? "" : " · toque em dois dias para ver a faixa"}
       </CardHint>
 
       {days.length > 0 && (
         <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((d) => {
             const n = accounts.filter((a) => a.dueDay === d).length;
-            const on = d === active;
+            const on = inDays({ dueDay: d }, active);
+            const edge = active && (d === active.from || d === active.to);
             return (
-              <button key={d} onClick={() => setDay(on ? null : d)} aria-pressed={on}
+              <button key={d} onClick={() => setSel((s) => pickDay(active ? s : null, d))} aria-pressed={on}
+                aria-label={`Dia ${dd(d)}, ${n} ${n === 1 ? "conta" : "contas"}`}
                 className={cn(
                   "flex h-11 min-w-[52px] flex-1 flex-col items-center justify-center rounded-md border text-sm font-bold transition-colors",
-                  on ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+                  edge ? "border-primary bg-primary text-primary-foreground" : on ? "border-primary/40 bg-tint text-tint-foreground" : "bg-card hover:bg-muted"
                 )}>
                 {String(d).padStart(2, "0")}
                 <span className="flex gap-0.5">
                   {Array.from({ length: Math.min(n, 5) }, (_, i) => (
-                    <span key={i} className={cn("h-0.5 w-0.5 rounded-full", on ? "bg-white" : "bg-muted-foreground/50")} />
+                    <span key={i} className={cn("h-0.5 w-0.5 rounded-full", edge ? "bg-white" : "bg-muted-foreground/50")} />
                   ))}
                 </span>
               </button>
@@ -49,7 +57,7 @@ export function AccountsList({ accounts, onTogglePaid, onEdit, className, solo }
       )}
 
       <ul className="mt-2 divide-y">
-        {list.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">Nenhuma conta neste mês.</li>}
+        {list.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">{active ? "Nenhuma conta nesses dias." : "Nenhuma conta neste mês."}</li>}
         {list.map((a) => (
           <li key={a.id} className="flex items-center gap-3 py-3">
             <button onClick={() => onTogglePaid(a)} aria-label={a.paid ? `Desmarcar ${a.name}` : `Marcar ${a.name} como paga`}
@@ -61,11 +69,12 @@ export function AccountsList({ accounts, onTogglePaid, onEdit, className, solo }
               {a.paid && <Check className="h-3 w-3" strokeWidth={3} />}
             </button>
             <button onClick={() => onEdit(a)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <Emoji char={categoryOf(categories, a.category).emoji} size={26} />
               <span className="min-w-0 flex-1">
                 <span className={cn("block truncate text-sm font-medium", a.paid && "text-muted-foreground line-through")}>{a.name}</span>
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   {!solo && (a.type === "shared" ? <Users className="h-3 w-3" /> : <Lock className="h-3 w-3" />)}
-                  {solo ? (CATEGORIES[a.category] ?? "Conta") : a.type === "shared" ? `Casa · total ${money(a.amount)}` : "Só você vê"} · dia {String(a.dueDay).padStart(2, "0")}
+                  <span className="truncate">{solo ? categoryOf(categories, a.category).name : a.type === "shared" ? `Casa · total ${money(a.amount)}` : "Só você vê"} · dia {dd(a.dueDay)}{a.installment ? ` · ${a.installment.current}/${a.installment.total}` : ""}</span>
                 </span>
               </span>
               <span className={cn("text-sm font-semibold whitespace-nowrap", a.paid && "text-muted-foreground")}>{money(a.myShare)}</span>

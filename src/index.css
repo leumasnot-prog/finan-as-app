@@ -21,6 +21,15 @@
     --tint: 211 92% 95%;
     --tint-foreground: 226 81% 42%;
     --warn: 30 92% 34%;
+    /* gráficos de pizza: 8 fatias, vizinhas sempre distinguíveis */
+    --chart-1: 226 81% 52%;
+    --chart-2: 345 78% 55%;
+    --chart-3: 158 64% 38%;
+    --chart-4: 36 95% 52%;
+    --chart-5: 268 70% 60%;
+    --chart-6: 190 80% 42%;
+    --chart-7: 14 85% 57%;
+    --chart-8: 220 12% 62%;
     --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
     --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 24px -6px rgb(16 24 40 / 0.12);
     --shadow-cta: 0 2px 10px hsl(226 81% 49% / 0.28);
@@ -43,6 +52,14 @@
     --tint: 222 45% 18%;
     --tint-foreground: 214 95% 78%;
     --warn: 36 92% 58%;
+    --chart-1: 222 90% 64%;
+    --chart-2: 345 85% 64%;
+    --chart-3: 158 58% 50%;
+    --chart-4: 38 95% 60%;
+    --chart-5: 268 85% 72%;
+    --chart-6: 188 75% 52%;
+    --chart-7: 14 90% 65%;
+    --chart-8: 220 10% 55%;
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-pop: 0 12px 28px -6px rgb(0 0 0 / 0.6);
     --shadow-cta: 0 2px 10px hsl(222 84% 55% / 0.35);

@@ -1,7 +1,11 @@
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardHint, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/Money";
-import { CATEGORIES } from "@/lib/seed";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Donut } from "@/components/Donut";
+import { Emoji } from "@/components/Emoji";
+import { categoryTotals } from "@/lib/planning";
 import { money } from "@/lib/utils";
 
 const compact = (v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : v);
@@ -22,8 +26,8 @@ function Tip({ active, payload, label, title }) {
   );
 }
 
-export function Flow({ b, series, categories, solo }) {
-  const data = categories.map((c) => ({ ...c, label: CATEGORIES[c.category] ?? c.category }));
+export function Flow({ b, series, accounts, categories, actions, solo }) {
+  const cats = categoryTotals(accounts, categories);
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -53,27 +57,28 @@ export function Flow({ b, series, categories, solo }) {
           </ResponsiveContainer>
         </div>
       </Card>
-      <Card>
-        <CardTitle>Para onde vai</CardTitle>
-        {!solo && (
-          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-navy" />Sua parte da casa</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-p1" />Pessoal</span>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardTitle>Gastos por categoria</CardTitle>
+          <CardHint className="mt-2">{solo ? "Suas contas do mês." : "Sua parte da casa + suas contas pessoais."} Passe o dedo numa fatia para ver o valor.</CardHint>
+          <Donut className="mt-5" rows={cats.rows} total={cats.total} centerLabel="Gasto no mês" empty="Nenhuma conta neste mês." />
+        </Card>
+        <Card className="h-fit">
+          <div className="flex items-center justify-between">
+            <CardTitle>Categorias</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => actions.editCategory(null)}><Plus className="h-3.5 w-3.5" />Nova</Button>
           </div>
-        )}
-        <div className="mt-4" style={{ height: Math.max(120, data.length * 48) }}>
-          <ResponsiveContainer>
-            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }} barSize={18}>
-              <CartesianGrid horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={axis} tickLine={false} axisLine={false} tickFormatter={compact} />
-              <YAxis type="category" dataKey="label" tick={axis} tickLine={false} axisLine={false} width={84} />
-              <Tooltip cursor={{ fill: "hsl(var(--muted))" }} content={<Tip title={(l) => l} />} />
-              <Bar dataKey="casa" name="Casa" stackId="a" fill="hsl(var(--navy))" radius={[4, 0, 0, 4]} />
-              <Bar dataKey="pessoal" name={solo ? "Contas" : "Pessoal"} stackId="a" fill="hsl(var(--p1))" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
+          <CardHint className="mt-2">Valem para os dois e para todos os meses. Toque para editar.</CardHint>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {categories.map((c) => (
+              <button key={c.id} type="button" onClick={() => actions.editCategory(c)}
+                className="flex items-center gap-1.5 rounded-full border bg-card py-1 pl-1.5 pr-3 text-xs font-semibold transition-colors hover:bg-muted">
+                <Emoji char={c.emoji} size={20} />{c.name}
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

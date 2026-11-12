@@ -1,11 +1,13 @@
-import { ArrowLeftRight, CreditCard, Home, LayoutGrid, Moon, Palette, Settings, Sun, User, Users } from "lucide-react";
+import { ArrowLeftRight, CreditCard, Gem, Home, LayoutGrid, Target, Moon, Palette, Settings, Sun, User, Users } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { cn } from "@/lib/utils";
 
 export const NAV = [
   { id: "inicio", label: "Visão geral", short: "Início", icon: LayoutGrid },
   { id: "fluxo", label: "Fluxo de caixa", short: "Fluxo", icon: ArrowLeftRight },
-  { id: "cartoes", label: "Cartões", short: "Cartões", icon: CreditCard },
+  { id: "cartoes", label: "Carteira", short: "Carteira", icon: CreditCard },
+  { id: "metas", label: "Metas", short: "Metas", icon: Target },
+  { id: "patrimonio", label: "Patrimônio", short: "Bens", icon: Gem },
   { id: "casa", label: "Nossa casa", short: "Casa", icon: Home },
 ];
 
@@ -115,10 +117,10 @@ export function ThemeToggle({ theme, onTheme }) {
 export function BottomNav({ tab, setTab, solo }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-lg grid-cols-6">
         {navFor(solo).map((n) => (
           <button key={n.id} onClick={() => setTab(n.id)} aria-current={tab === n.id ? "page" : undefined}
-            className={cn("flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+            className={cn("flex min-w-0 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium",
               tab === n.id ? "text-primary dark:text-tint-foreground" : "text-muted-foreground")}>
             <n.icon className="h-5 w-5" strokeWidth={tab === n.id ? 2.4 : 1.8} />{n.short}
           </button>

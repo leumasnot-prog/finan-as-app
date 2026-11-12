@@ -8,7 +8,7 @@
 // chaves pessoais separadas por pessoa. Ali é só uma simulação: privacidade
 // de verdade exige que cada pessoa esteja no próprio dispositivo/conta.
 
-import { initialData, USERS } from "./seed.js";
+import { DEFAULT_CATEGORIES, initialData, SEED_PROFILE, USERS } from "./seed.js";
 import { migrate, needsMigration, stamp } from "./migrations.js";
 
 const hasClaudeStorage = () =>
@@ -44,6 +44,8 @@ const backend = {
 const sharedKey = (month) => `duofinn:shared:${month}`;
 const personalKey = (user, month) => `duofinn:personal:${user}:${month}`;
 const SESSION_KEY = "duofinn:session";
+const SETTINGS_KEY = "duofinn:shared:settings"; // categorias: os dois veem
+const profileKey = (user) => `duofinn:personal:${user}:profile`; // carteira, metas, patrimônio: só o dono
 
 // Separa o modelo "flat" em { shared, personal[pessoa] }.
 export function splitSeed(data = initialData) {
@@ -110,6 +112,40 @@ export const StorageManager = {
     return { shared, mine };
   },
 
+  // Documentos sem mês. Ausente = exemplo (o mesmo que acontece com dez/2026).
+  async loadExtras(currentUser) {
+    let [settings, profile] = await Promise.all([
+      read(SETTINGS_KEY, true, "settings"),
+      read(profileKey(currentUser), false, "profile"),
+    ]);
+    if (!settings) {
+      settings = stamp({ categories: DEFAULT_CATEGORIES });
+      await backend.set(SETTINGS_KEY, settings, true);
+    }
+    if (!profile) {
+      profile = stamp(structuredClone(SEED_PROFILE[currentUser] ?? { cards: [], goals: [], assets: [] }));
+      await backend.set(profileKey(currentUser), profile, false);
+    }
+    return { settings, profile };
+  },
+  saveSettings(settings) {
+    return backend.set(SETTINGS_KEY, stamp(settings), true);
+  },
+  saveProfile(user, profile) {
+    return backend.set(profileKey(user), stamp(profile), false);
+  },
+
+  // Lança uma conta em OUTRO mês (despesa que se repete ou parcela).
+  // Cada documento continua no seu escopo: conta da casa no compartilhado do mês,
+  // pessoal no pessoal de quem lança (R1).
+  async addToMonth(kind, currentUser, month, item) {
+    const { shared, mine } = await this.load(currentUser, month);
+    const put = (list) => [...list.filter((x) => x.id !== item.id), item];
+    if (kind === "shared") await this.saveShared(month, { ...shared, accounts: put(shared.accounts), settled: false });
+    else if (kind === "income") await this.savePersonal(currentUser, month, { ...mine, incomes: put(mine.incomes) });
+    else await this.savePersonal(currentUser, month, { ...mine, accounts: put(mine.accounts) });
+  },
+
   saveShared(month, shared) {
     return backend.set(sharedKey(month), stamp(shared), true);
   },
@@ -119,6 +155,8 @@ export const StorageManager = {
 
   async reset(month) {
     await Promise.all([
+      backend.remove(SETTINGS_KEY, true),
+      ...USERS.map((u) => backend.remove(profileKey(u), false)),
       backend.remove(sharedKey(month), true),
       ...USERS.map((u) => backend.remove(personalKey(u, month), false)),
     ]);

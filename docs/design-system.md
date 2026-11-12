@@ -50,8 +50,9 @@ Valores em HSL, usados como `hsl(var(--token))`. Classe Tailwind = nome do token
 | `--ok` | `142 64% 29%` | `142 55% 48%` | Sobra, conta paga |
 | `--warn` | `30 92% 34%` | `36 92% 58%` | Atenção (vencimento próximo) |
 | `--destructive` | `0 72% 51%` | `0 84% 66%` | Saldo negativo, excluir, limite > 80% |
+| `--chart-1` … `--chart-8` | ver `src/index.css` | ver `src/index.css` | Fatias das pizzas (`Donut`), na ordem. Só preenchimento, nunca texto |
 
-Temas de cartão de crédito (`CreditCardVisual`): `graphite`, `blue`, `orange`, `sand`. São os únicos gradientes do sistema.
+Temas de cartão de crédito (`CreditCardVisual`): `graphite`, `blue`, `purple`, `pink`, `red`, `orange`, `gold`, `green`, `teal`, `sand`, ou uma cor livre escolhida pelo usuário (o gradiente sai da própria cor). São os únicos gradientes do sistema.
 
 ### 3.2 Tipografia
 
@@ -153,3 +154,16 @@ Exceções conhecidas às regras deste documento:
   verde de texto e fica escuro demais como traço de 2px. É traço, não texto, e o valor só existe dentro de `.bal-plot`.
 - Os centavos do valor usam o texto principal a 34% de opacidade (no resto do app são `--muted-foreground`).
 - No celular, tocar no card fora da linha não rola a página: o arrasto vertical ali é o gesto de puxar.
+
+## Emojis 3D
+
+Categorias, metas, bens e cartões usam os emojis 3D da Microsoft (Fluent Emoji, licença MIT, pacote
+`@lobehub/fluent-emoji-3d`). Ficam em `src/assets/emoji/` (92 arquivos .webp, ~380 KB) e o catálogo com nomes em
+português está em `src/lib/emoji.js`. Use sempre `<Emoji char="🏠" />`, nunca o emoji do sistema solto; emoji fora do
+conjunto cai para o do sistema. `<EmojiPicker>` é a grade com busca usada nos formulários.
+
+## Pizza (`Donut`)
+
+Rosca com o total no centro; passar o dedo numa fatia (ou na linha da legenda) mostra o emoji, o valor e o % dela no centro.
+Legenda ao lado (ou embaixo com `stacked`) com barra do % na cor da fatia. Usada em Fluxo (gastos por categoria) e em
+Patrimônio (divisão por tipo).
