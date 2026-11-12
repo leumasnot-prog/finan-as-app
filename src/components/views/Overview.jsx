@@ -5,6 +5,7 @@ import { BalanceCard, PrivacyCard, SplitCard } from "@/components/OverviewCards"
 import { AccountsList } from "@/components/AccountsList";
 import { CreditCardVisual } from "@/components/CreditCardVisual";
 import { Money } from "@/components/Money";
+import { BalanceChart } from "@/components/BalanceChart";
 
 export function CardsSummary({ cards, month, onSeeAll, solo }) {
   const total = cards.reduce((s, a) => s + a.myShare, 0);
@@ -27,7 +28,7 @@ export function CardsSummary({ cards, month, onSeeAll, solo }) {
   );
 }
 
-export function Overview({ b, shared, me, month, accounts, actions, setTab, solo }) {
+export function Overview({ b, shared, me, month, accounts, series, onRefresh, actions, setTab, solo }) {
   const cards = accounts.filter((a) => a.category === "cartao");
   return (
     <div className="grid gap-4 xl:grid-cols-3">
@@ -43,6 +44,10 @@ export function Overview({ b, shared, me, month, accounts, actions, setTab, solo
         )}
       </div>
       <div className="space-y-4">
+        <div>
+          <CardHint className="mb-2 px-1">Saldo ao longo do mês{solo ? "" : " · só a sua parte"} · puxe o card para atualizar</CardHint>
+          <BalanceChart series={series} onRefresh={onRefresh} />
+        </div>
         <AccountsList accounts={accounts} onTogglePaid={actions.togglePaid} onEdit={actions.edit} solo={solo} />
         {!solo && <PrivacyCard b={b} shared={shared} me={me} />}
       </div>

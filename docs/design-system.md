@@ -138,3 +138,18 @@ Contraste (WCAG 2.x) dos pares usados, calculado a partir dos tokens:
 2. Novo componente: use só tokens (nada de hex solto fora de `CreditCardVisual`), e inclua um exemplo em `src/components/views/DesignSystem.jsx`.
 3. Não escreva classes Tailwind montadas por string (`rounded-${x}`): o Tailwind não as enxerga.
 4. Não passe `text-caption`, `text-title` etc. junto com uma cor de texto dentro de `cn()`: o tailwind-merge trata as duas como conflito e descarta a primeira. Use string simples ou o componente (`Eyebrow`, `CardTitle`, `CardHint`).
+
+## Gráfico de saldo (puxe para atualizar)
+
+`<BalanceChart series onRefresh>` (`src/components/BalanceChart.jsx`) mostra o saldo dia a dia numa linha curva,
+com janelas de 7 dias / 15 dias / mês. Passar o dedo ou o mouse na linha lê cada dia; puxar o card para baixo
+(ou focar nele e apertar Enter) recarrega os dados do storage. Verde = saldo positivo naquele dia; vermelho = falta.
+
+Por baixo está `PullToRefresh` (`src/components/PullToRefresh.jsx`), de Bencho (bencho.dev, licença MIT). O CSS fica no
+fim de `src/index.css` e usa só tokens do Duo Finn; o mapeamento dos tokens do Bencho está no cabeçalho do bloco.
+Exceções conhecidas às regras deste documento:
+
+- A linha verde no tema claro usa `hsl(142 64% 37%)`: mesmo matiz e saturação de `--ok`, mais clara, porque `--ok` é um
+  verde de texto e fica escuro demais como traço de 2px. É traço, não texto, e o valor só existe dentro de `.bal-plot`.
+- Os centavos do valor usam o texto principal a 34% de opacidade (no resto do app são `--muted-foreground`).
+- No celular, tocar no card fora da linha não rola a página: o arrasto vertical ali é o gesto de puxar.

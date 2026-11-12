@@ -7,6 +7,7 @@ import { Input, Label, Select } from "@/components/ui/input";
 import { Money } from "@/components/Money";
 import { Avatar } from "@/components/Avatar";
 import { CreditCardVisual, CARD_THEMES } from "@/components/CreditCardVisual";
+import { BalanceChart } from "@/components/BalanceChart";
 import { cn } from "@/lib/utils";
 
 const COLORS = [
@@ -29,6 +30,14 @@ const TYPE = [
   ["Eyebrow", "text-eyebrow uppercase text-tint-foreground", "Nossa casa", "Instrument 700 · 12/16 · +0,08em"],
   ["Mono", "font-mono text-sm", "•••• 0937  12/12", "JetBrains Mono 500 · dados do cartão"],
 ];
+
+// Séries de exemplo para o gráfico de saldo: uma que fecha o mês sobrando, outra faltando.
+const demoSeries = (start, outs) => {
+  let saldo = start;
+  return Array.from({ length: 31 }, (_, i) => ({ day: i + 1, saldo: (saldo -= outs[i + 1] ?? 0) }));
+};
+const DEMO_UP = demoSeries(9000, { 5: 2400, 8: 890, 10: 2000, 15: 1075, 22: 640 });
+const DEMO_DOWN = demoSeries(6000, { 5: 2400, 10: 2000, 12: 1450, 15: 1075, 20: 380 });
 
 function Swatch({ token, use }) {
   const [value, setValue] = useState("");
@@ -174,6 +183,17 @@ export function DesignSystem({ users, month }) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {CARD_THEMES.map((t, i) => <CreditCardVisual key={t} account={demoCard(t, i)} month={month} />)}
         </div>
+      </Section>
+
+      <Section eyebrow="Componentes" title="Gráfico de saldo (puxe para atualizar)">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <BalanceChart series={DEMO_UP} />
+          <BalanceChart series={DEMO_DOWN} />
+        </div>
+        <p className="mt-4 text-caption text-muted-foreground">
+          Puxe o card para baixo para atualizar (ou foque nele e aperte Enter). Passe o dedo ou o mouse na linha para ler cada dia.
+          Verde = saldo positivo naquele dia; vermelho = falta. Componente de Bencho (MIT), com os tokens do Duo Finn.
+        </p>
       </Section>
 
       <Card>

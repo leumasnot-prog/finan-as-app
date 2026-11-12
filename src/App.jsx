@@ -142,7 +142,7 @@ export default function App() {
           </Button>
         </header>
 
-        {tab === "inicio" && <Overview b={view.b} shared={view.house} me={user} month={month} accounts={view.accounts} actions={actions} setTab={setTab} solo={solo} />}
+        {tab === "inicio" && <Overview b={view.b} shared={view.house} me={user} month={month} accounts={view.accounts} series={view.series} onRefresh={load} actions={actions} setTab={setTab} solo={solo} />}
         {tab === "fluxo" && <Flow b={view.b} series={view.series} categories={view.categories} solo={solo} />}
         {tab === "cartoes" && <Cards accounts={view.accounts} month={month} actions={actions} solo={solo} />}
         {tab === "casa" && <House b={view.b} shared={view.house} me={user} actions={actions} storageLabel={storageLabel} onOpenDs={() => setTab("ds")} solo={solo} onMode={setMode} />}
