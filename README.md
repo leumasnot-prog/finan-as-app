@@ -45,4 +45,6 @@ navegador — privacidade real exige um backend com contas separadas.
 
 Design system: [`docs/design-system.md`](docs/design-system.md) e, no app, **Sistema → Design system**.
 
+Próximos passos (grafo de tarefas para agentes): [`docs/proximos-passos.md`](docs/proximos-passos.md).
+
 Dados de exemplo: dezembro/2026 (`src/lib/seed.js`).
